@@ -1,0 +1,31 @@
+USUARIOS
+- id
+- nombre
+- email
+- contraseña
+- rol (administrador, supervisor, operario, controlador)
+
+TAREAS
+- id
+- titulo
+- descripcion
+- fecha_creacion
+- fecha_limite
+- id_operario_asignado
+- estado (pendiente, en progreso, terminada, aprobada, rechazada)
+- comentarios_rechazo
+
+TAREAS_ARCHIVOS
+- id
+- id_tarea
+- nombre_archivo
+- url_archivo
+
+TAREAS_HISTORIAL
+- id
+- id_tarea
+- estado_anterior
+- estado_nuevo
+- usuario_modifico
+- fecha
+- comentario_opcional
