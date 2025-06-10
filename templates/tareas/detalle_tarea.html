@@ -32,15 +32,10 @@
       <form method="post">
         {% csrf_token %}
         <button type="submit" name="accion" value="aceptar" class="btn btn-primary me-2">
-          Aceptar
+          Finalizada
         </button>
         <button type="submit" name="accion" value="rechazar" class="btn btn-warning me-2">
           Reenviar a operario
-        </button>
-        <button type="submit" name="accion" value="rechazada" class="btn btn-danger">
-          Marcar como rechazada
-        </button>
-      </form>
     {% endif %}
   </div>
 {% endblock %}

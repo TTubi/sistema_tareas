@@ -5,13 +5,8 @@
   <ul>
     {% for tarea in tareas %}
       <li>
-        <strong>{{ tarea.titulo }}</strong> - Estado: {{ tarea.estado }}
-        {% if tarea.estado == 'pendiente' %}
-          <form method="post" action="{% url 'marcar_completada' tarea.id %}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit">Enviar a control</button>
-          </form>
-        {% endif %}
+        <a href="{% url 'detalle_tarea' tarea.id %}"><strong>{{ tarea.titulo }}</strong></a>
+         - Estado: {{ tarea.estado }}
       </li>
     {% empty %}
       <li>No tenés tareas asignadas.</li>

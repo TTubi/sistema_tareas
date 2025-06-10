@@ -5,7 +5,8 @@
   <ul>
     {% for tarea in tareas %}
       <li>
-        <strong>{{ tarea.titulo }}</strong> - Asignado a: {{ tarea.asignado_a }}
+        <a href="{% url 'detalle_tarea' tarea.id %}"><strong>{{ tarea.titulo }}</strong></a>
+         - Asignado a: {{ tarea.asignado_a }}
         <form method="post" action="{% url 'resolver_tarea' tarea.id %}" style="display:inline;">
           {% csrf_token %}
           <button name="accion" value="aceptar">✅ Aceptar</button>

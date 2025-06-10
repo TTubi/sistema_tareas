@@ -103,6 +103,8 @@ def crear_tarea(request):
 
     return render(request, 'tareas/crear_tarea.html', {'form': form})
 
+# OPERARIO
+
 
 @login_required
 def tareas_operario(request):
@@ -110,8 +112,12 @@ def tareas_operario(request):
     if empleado.perfil != 'operario':
         return HttpResponseForbidden("Solo operarios pueden ver esta página.")
 
-    tareas = Tarea.objects.filter(asignado_a=empleado)
+    tareas = Tarea.objects.filter(asignado_a=empleado, estado='pendiente')
     return render(request, 'tareas/tareas_operario.html', {'tareas': tareas})
+
+def detalle_tarea_operario(request, tarea_id):
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    return render(request, 'detalle_tarea.html', {'tarea': tarea})
 
 @require_POST
 @login_required
@@ -126,6 +132,8 @@ def marcar_completada(request, tarea_id):
     tarea.save()
     return HttpResponseRedirect(reverse('tareas_operario'))
 
+# CONTROLADOR
+
 @login_required
 def tareas_para_controlar(request):
     empleado = Empleado.objects.get(usuario=request.user)
@@ -134,6 +142,10 @@ def tareas_para_controlar(request):
 
     tareas = Tarea.objects.filter(estado='en_revision')
     return render(request, 'tareas/tareas_controlador.html', {'tareas': tareas})
+
+def detalle_tarea_controlador(request, tarea_id):
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    return render(request, 'detalle_tarea.html', {'tarea': tarea})
 
 @require_POST
 @login_required
@@ -159,15 +171,6 @@ def cerrar_sesion(request):
         logout(request)
         return redirect('login')
     return redirect('home')  # opcional: manejar otros métodos
-
-def detalle_tarea_operario(request, tarea_id):
-    tarea = get_object_or_404(Tarea, id=tarea_id)
-    return render(request, 'detalle_tarea_operario.html', {'tarea': tarea})
-
-def detalle_tarea_controlador(request, tarea_id):
-    tarea = get_object_or_404(Tarea, id=tarea_id)
-    return render(request, 'detalle_tarea_controlador.html', {'tarea': tarea})
-
 
 
 # Create your views here.
