@@ -1,41 +1,49 @@
-{% extends 'base.html' %}
-
-{% block title %}Detalle de Tarea{% endblock %}
+{% extends "base.html" %}
 
 {% block content %}
   <div class="container mt-4">
-    <h2>{{ tarea.titulo }}</h2>
-    <p><strong>Descripción:</strong> {{ tarea.descripcion }}</p>
-    <p><strong>Estado actual:</strong> {{ tarea.get_estado_display }}</p>
-    <p><strong>Asignada a:</strong> {{ tarea.asignado_a }}</p>
-    <p><strong>Creada por:</strong> {{ tarea.creada_por }}</p>
-    <p><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"d/m/Y H:i" }}</p>
-{% if tarea.plano %}
-  <div class="mt-3">
-    <p><strong>Plano adjunto:</strong></p>
-    <img src="{{ tarea.plano.url }}" alt="Plano de la tarea" style="max-width: 600px;">
-  </div>
-{% else %}
-  <p><em>No hay plano adjunto.</em></p>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title">{{ tarea.titulo }}</h3>
+        <p class="card-text"><strong>Descripción:</strong> {{ tarea.descripcion }}</p>
+        <p class="card-text"><strong>Asignado a:</strong> {{ tarea.asignado_a }}</p>
+        <p class="card-text"><strong>Creado por:</strong> {{ tarea.creada_por }}</p>
+        <p class="card-text"><strong>Estado actual:</strong> <span class="badge bg-primary">{{ tarea.estado }}</span></p>
+        <p class="card-text"><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"Y-m-d H:i" }}</p>
+
+        {% if tarea.plano %}
+          <p class="card-text"><strong>Plano:</strong></p>
+          <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
+        {% endif %}
+
+        {% if es_operario and tarea.estado == 'pendiente' %}
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="accion" value="enviar_control" class="btn btn-warning">📤 Enviar a control</button>
+          </form>
+        {% elif es_controlador %}
+          <form method="post" class="d-flex gap-2 mt-3">
+            {% csrf_token %}
+            <button type="submit" name="accion" value="aceptar" class="btn btn-success">✅ Aceptar</button>
+            <button type="submit" name="accion" value="rechazar" class="btn btn-danger">❌ Rechazar</button>
+          </form>
+        {% endif %}
+        {% if es_encargado %}
+  <hr>
+  <h5>Reasignar tarea a otro operario</h5>
+  <form method="post" class="d-flex flex-column flex-md-row align-items-start gap-2 mt-2">
+    {% csrf_token %}
+    <select name="nuevo_operario" class="form-select" required>
+      {% for operario in operarios %}
+        <option value="{{ operario.id }}" {% if operario == tarea.asignado_a %}selected{% endif %}>
+          {{ operario.usuario.get_full_name|default:operario.usuario.username }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit" name="accion" value="reasignar" class="btn btn-primary mt-2 mt-md-0">🔄 Reasignar</button>
+  </form>
 {% endif %}
-    <hr>
-
-    {% if es_operario and tarea.estado == 'pendiente' %}
-      <form method="post">
-        {% csrf_token %}
-        <button type="submit" name="accion" value="enviar_control" class="btn btn-success">
-          Enviar a control
-        </button>
-      </form>
-
-    {% elif es_controlador and tarea.estado == 'en_revision' %}
-      <form method="post">
-        {% csrf_token %}
-        <button type="submit" name="accion" value="aceptar" class="btn btn-primary me-2">
-          Finalizada
-        </button>
-        <button type="submit" name="accion" value="rechazar" class="btn btn-warning me-2">
-          Reenviar a operario
-    {% endif %}
+      </div>
+    </div>
   </div>
 {% endblock %}

@@ -1,15 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>Mis tareas asignadas</h2>
-  <ul>
-    {% for tarea in tareas %}
-      <li>
-        <a href="{% url 'detalle_tarea' tarea.id %}"><strong>{{ tarea.titulo }}</strong></a>
-         - Estado: {{ tarea.estado }}
-      </li>
-    {% empty %}
-      <li>No tenés tareas asignadas.</li>
-    {% endfor %}
-  </ul>
+  <div class="container mt-4">
+    <h2 class="mb-3">Mis tareas asignadas</h2>
+    <ul class="list-group">
+      {% for tarea in tareas %}
+        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+          <div class="mb-2">
+            <a href="{% url 'detalle_tarea' tarea.id %}" class="fw-bold text-decoration-none">{{ tarea.titulo }}</a>
+            <div class="text-muted">Estado: {{ tarea.estado }}</div>
+          </div>
+          {% if tarea.estado == 'pendiente' %}
+            <form method="post" action="{% url 'marcar_completada' tarea.id %}">
+              {% csrf_token %}
+            </form>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="list-group-item">No tenés tareas asignadas.</li>
+      {% endfor %}
+    </ul>
+  </div>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 
+# CONSTANTES
 PERFILES = (
     ('operario', 'Operario'),
     ('controlador', 'Controlador'),
@@ -12,6 +13,15 @@ PERFILES = (
     ('admin', 'Administrador'),
 )
 
+ESTADOS = (
+        ('pendiente', 'Pendiente'),
+        ('en_progreso', 'En progreso'),
+        ('en_revision', 'En revision'),
+        ('finalizada', 'Finalizada'),
+        ('rechazada', 'Rechazada'),
+    )
+
+# MODELOS
 
 class Empleado(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -28,14 +38,6 @@ class Tarea(models.Model):
     creada_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     plano = models.ImageField(upload_to='planos/', null=True, blank=True)
-
-    ESTADOS = (
-        ('pendiente', 'Pendiente'),
-        ('en_progreso', 'En progreso'),
-        ('en_revision', 'En revision'),
-        ('finalizada', 'Finalizada'),
-        ('rechazada', 'Rechazada'),
-    )
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
 
     def save(self, *args, **kwargs):
@@ -89,13 +91,6 @@ class Movimiento(models.Model):
     def __str__(self):
         return f"{self.tarea.titulo} - {self.estado_anterior} ➜ {self.estado_nuevo} ({self.fecha_hora})"
 
-    ESTADOS = (
-        ('pendiente', 'Pendiente'),
-        ('en_progreso', 'En progreso'),
-        ('en_revision', 'En revision'),
-        ('finalizada', 'Finalizada'),
-        ('rechazada', 'Rechazada'),
-    )
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
 
 

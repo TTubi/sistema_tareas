@@ -42,8 +42,6 @@ def detalle_tarea(request, tarea_id):
     es_encargado = empleado.perfil == 'encargado'
 
     # Validación de acceso por perfil
-    #if es_operario and tarea.asignado_a != empleado:
-        #return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
     if es_operario:
         if tarea.asignado_a != empleado:
             return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
@@ -74,6 +72,21 @@ def detalle_tarea(request, tarea_id):
             elif accion == 'rechazada':
                 tarea.estado = 'rechazada'
             tarea.save()
+
+        elif es_encargado and accion == 'reasignar':
+            nuevo_operario_id = request.POST.get('nuevo_operario')
+            nuevo_operario = get_object_or_404(Empleado, id=nuevo_operario_id, perfil='operario')
+            tarea.asignado_a = nuevo_operario
+            tarea.save()
+            messages.success(request, "La tarea fue reasignada correctamente.")
+            Movimiento.objects.create(
+                tarea=tarea,
+                estado_anterior=f"Asignado a {anterior}",
+                estado_nuevo=f"Asignado a {nuevo_operario}"
+            )
+            return redirect('detalle_tarea', tarea_id=tarea.id)
+
+    operarios = Empleado.objects.filter(perfil='operario') if es_encargado else []
 
     return render(request, 'tareas/detalle_tarea.html', {
         'tarea': tarea,
@@ -165,7 +178,7 @@ def resolver_tarea(request, tarea_id):
 
     return HttpResponseRedirect(reverse('tareas_para_controlar'))
 
-
+# Cerrar sesion
 def cerrar_sesion(request):
     if request.method == 'GET':
         logout(request)
@@ -173,4 +186,4 @@ def cerrar_sesion(request):
     return redirect('home')  # opcional: manejar otros métodos
 
 
-# Create your views here.
+
