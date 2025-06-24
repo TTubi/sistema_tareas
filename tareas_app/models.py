@@ -77,7 +77,22 @@ class Tarea(models.Model):
         c.drawString(100, y, "Movimientos:")
         for mov in self.movimientos.all():
             y -= 20
+            if y < 100:  # Salto de página si el contenido es muy largo
+             c.showPage()
+             c.setFont("Helvetica", 12)
+             y = 800
+
             c.drawString(120, y, f"{mov.fecha_hora.strftime('%Y-%m-%d %H:%M')} - {mov.estado_anterior} ➜ {mov.estado_nuevo}")
+         # Agregar imagen del plano si existe y es imagen
+            if self.plano and self.plano.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+              try:
+                 plano_path = os.path.join(settings.MEDIA_ROOT, self.plano.name)
+                 c.showPage()  # Página nueva
+                 c.drawString(100, 800, "Plano adjunto:")
+                 c.drawImage(ImageReader(plano_path), x=100, y=400, width=400, height=300, preserveAspectRatio=True)
+              except Exception as e:
+                 c.drawString(100, 780, f"Error al cargar plano: {e}")
+
 
         c.save()
 
