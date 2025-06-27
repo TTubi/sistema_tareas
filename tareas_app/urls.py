@@ -11,5 +11,8 @@ urlpatterns = [
     path('controlador/', views.tareas_para_controlar, name='tareas_para_controlar'),
     path('controlador/<int:tarea_id>/resolver/', views.resolver_tarea, name='resolver_tarea'),
     path('controlador/<int:tarea_id>/', views.detalle_tarea_controlador, name='detalle_tarea_controlador'),
+    path('ordenes/', views.lista_ordenes_trabajo, name='lista_ordenes_trabajo'),
+    path('ordenes/crear/', views.crear_orden_trabajo, name='crear_orden_trabajo'),
+    path('ordenes/<int:orden_id>/', views.detalle_orden_trabajo, name='detalle_orden_trabajo'),
  
 ]

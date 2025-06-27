@@ -10,6 +10,14 @@
         <p class="card-text"><strong>Creado por:</strong> {{ tarea.creada_por }}</p>
         <p class="card-text"><strong>Estado actual:</strong> <span class="badge bg-primary">{{ tarea.estado }}</span></p>
         <p class="card-text"><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"Y-m-d H:i" }}</p>
+        <p class="card-text"><strong>Plano:</strong> {{ tarea.plano_codigo }}</p>
+        <p class="card-text"><strong>Posición:</strong> {{ tarea.posicion }}</p>
+        <p class="card-text"><strong>Denominación:</strong> {{ tarea.denominacion }}</p>
+        <p class="card-text"><strong>Cantidad:</strong> {{ tarea.cantidad }}</p>
+        <p class="card-text"><strong>Peso Unitario:</strong> {{ tarea.peso_unitario }} kg</p>
+        <p class="card-text"><strong>Peso Total:</strong> {{ tarea.peso_total }} kg</p>
+        <p class="card-text"><strong>Construye en:</strong> {{ tarea.construye_en }}</p>
+        <p class="card-text"><strong>Clasificación:</strong> {{ tarea.clasificacion }}</p>
 
         {% if tarea.plano %}
           <p class="card-text"><strong>Plano:</strong></p>

@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Tarea, Empleado
+from .models import Tarea, Empleado, OrdenDeTrabajo
 from django.contrib.auth.models import User
-from .forms import TareaForm
+from .forms import TareaForm, OrdenDeTrabajoForm
 from django.views.decorators.http import require_POST
 from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.shortcuts import redirect
 from django.contrib.auth import logout
+import pandas as pd
 
 @login_required
 def redirect_por_perfil(request):
@@ -24,13 +25,35 @@ def redirect_por_perfil(request):
 @login_required
 def lista_tareas(request):
     empleado = get_object_or_404(Empleado, usuario=request.user)
+
     if empleado.perfil == 'operario':
         tareas = Tarea.objects.filter(asignado_a=empleado)
     elif empleado.perfil == 'controlador':
         tareas = Tarea.objects.filter(estado='en_progreso')
     else:
         tareas = Tarea.objects.all()
-    return render(request, 'tareas/lista_tareas.html', {'tareas': tareas})
+
+    # Procesar asignación solo si es encargado
+    if request.method == 'POST' and empleado.perfil == 'encargado':
+        tarea_id = request.POST.get('tarea_id')
+        operario_id = request.POST.get('operario_id')
+
+        tarea = get_object_or_404(Tarea, id=tarea_id)
+        operario = get_object_or_404(Empleado, id=operario_id, perfil='operario')
+
+        tarea.asignado_a = operario
+        tarea.save()
+
+        return redirect('lista_tareas')
+
+    # Para mostrar el selector en el template
+    operarios = Empleado.objects.filter(perfil='operario') if empleado.perfil == 'encargado' else []
+
+    return render(request, 'tareas/lista_tareas.html', {
+        'tareas': tareas,
+        'es_encargado': empleado.perfil == 'encargado',
+        'operarios': operarios,
+    })
 
 @login_required
 def detalle_tarea(request, tarea_id):
@@ -115,6 +138,70 @@ def crear_tarea(request):
         form = TareaForm()
 
     return render(request, 'tareas/crear_tarea.html', {'form': form})
+
+@login_required
+def crear_orden_trabajo(request):
+    empleado = Empleado.objects.get(usuario=request.user)
+    if empleado.perfil != 'encargado':
+        return HttpResponseForbidden("Solo los encargados pueden crear órdenes de trabajo.")
+
+    if request.method == 'POST':
+        form = OrdenDeTrabajoForm(request.POST, request.FILES)
+        if form.is_valid():
+            orden = form.save(commit=False)
+            orden.creada_por = empleado
+            orden.save()
+
+            if orden.archivo_excel:
+                procesar_excel_y_crear_tareas(orden.archivo_excel, orden, empleado)
+
+            return redirect('lista_ordenes_trabajo')
+    else:
+        form = OrdenDeTrabajoForm()
+
+    return render(request, 'tareas/crear_orden_trabajo.html', {'form': form})
+
+@login_required
+def lista_ordenes_trabajo(request):
+    ordenes = OrdenDeTrabajo.objects.all()
+    return render(request, 'tareas/lista_ordenes_trabajo.html', {'ordenes': ordenes})
+
+@login_required
+def detalle_orden_trabajo(request, orden_id):
+    orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
+    tareas = orden.tareas.all()
+    return render(request, 'tareas/detalle_orden_trabajo.html', {'orden': orden, 'tareas': tareas})
+
+# Procesar Excel
+def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
+    import pandas as pd
+
+    df = pd.read_excel(archivo_excel, sheet_name='GRAL', skiprows=7)
+
+    # 🔍 Limpieza y debug
+    df.columns = df.columns.str.strip()
+    print("Columnas detectadas:", df.columns.tolist())  # Mostrará en la terminal las columnas que ve pandas
+
+    for _, row in df.iterrows():
+        Tarea.objects.create(
+            titulo=f"{row['PLANO CMMT']} - {row['DENOMINAC']}",
+            descripcion=f"Posición: {row['POSICIÓN']}, Estructura: {row['ID. ESTRUCT.']}",
+            asignado_a=None,
+            creada_por=creador,
+            orden=orden,
+            estado='pendiente',
+
+            estructura=row['ID. ESTRUCT.'],
+            plano_codigo=row['PLANO CMMT'],
+            posicion=row['POSICIÓN'],
+            denominacion=row['DENOMINAC'],
+            cantidad=row['CANTIDAD'],
+            peso_unitario=row['PESO UNIT.'],
+            peso_total=row['PESO TOTAL'],
+            construye_en=row['ONSTRUYE EN'],
+            clasificacion=row['CLASIFICACÍ']
+        )
+
 
 # OPERARIO
 

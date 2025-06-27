@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Órdenes de Trabajo</h2>
+  <a href="{% url 'crear_orden_trabajo' %}">+ Nueva Orden de Trabajo</a>
+  <ul>
+    {% for orden in ordenes %}
+      <li>
+        <a href="{% url 'detalle_orden_trabajo' orden.id %}">
+          {{ orden.nombre }} ({{ orden.fecha_creacion|date:"Y-m-d H:i" }})
+        </a>
+      </li>
+    {% empty %}
+      <li>No hay órdenes de trabajo.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

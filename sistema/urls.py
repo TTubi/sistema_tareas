@@ -11,6 +11,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('tareas/', include('tareas_app.urls')),  # ✅ OK, solo en /tareas/
     path('cerrar/', views.cerrar_sesion, name='cerrar'),
+    path('', include('tareas_app.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

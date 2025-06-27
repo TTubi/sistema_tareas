@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>{{ orden.nombre }}</h2>
+  <p>{{ orden.descripcion }}</p>
+  <p>Creada el: {{ orden.fecha_creacion|date:"Y-m-d H:i" }}</p>
+
+  <h3>Archivo Excel cargado:</h3>
+  {% if orden.archivo_excel %}
+    <a href="{{ orden.archivo_excel.url }}">Descargar archivo</a>
+  {% else %}
+    <p>No se cargó un Excel.</p>
+  {% endif %}
+
+  <h3>Tareas generadas:</h3>
+  <ul>
+    {% for tarea in tareas %}
+      <li>
+        <a href="{% url 'detalle_tarea' tarea.id %}">{{ tarea.titulo }}</a> - Estado: {{ tarea.estado }}
+      </li>
+    {% empty %}
+      <li>No hay tareas vinculadas a esta orden.</li>
+    {% endfor %}
+  </ul>
+
+  <a href="{% url 'lista_ordenes_trabajo' %}">Volver a Órdenes de Trabajo</a>
+{% endblock %}
