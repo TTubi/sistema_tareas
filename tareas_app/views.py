@@ -174,17 +174,25 @@ def detalle_orden_trabajo(request, orden_id):
 
 # Procesar Excel
 def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
-    import pandas as pd
 
-    df = pd.read_excel(archivo_excel, sheet_name='GRAL', skiprows=7)
-
-    # 🔍 Limpieza y debug
+    df = pd.read_excel(archivo_excel, sheet_name='GRAL', skiprows=6)
     df.columns = df.columns.str.strip()
-    print("Columnas detectadas:", df.columns.tolist())  # Mostrará en la terminal las columnas que ve pandas
+
+    print("✅ Columnas detectadas:", df.columns.tolist())
+
+    columnas_esperadas = [
+        'POSICIÓN', 'ID. ESTRUCT.', 'PLANO CMMT', 'DENOMINACIÓN', 'CANTIDAD',
+        'PESO UNIT.', 'PESO TOTAL'
+    ]
+
+    for col in columnas_esperadas:
+        if col not in df.columns:
+            raise ValueError(f"❌ Falta la columna requerida: {col}")
+        
 
     for _, row in df.iterrows():
         Tarea.objects.create(
-            titulo=f"{row['PLANO CMMT']} - {row['DENOMINAC']}",
+            titulo=f"{row['PLANO CMMT']} - {row['DENOMINACIÓN']}",
             descripcion=f"Posición: {row['POSICIÓN']}, Estructura: {row['ID. ESTRUCT.']}",
             asignado_a=None,
             creada_por=creador,
@@ -194,13 +202,12 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
             estructura=row['ID. ESTRUCT.'],
             plano_codigo=row['PLANO CMMT'],
             posicion=row['POSICIÓN'],
-            denominacion=row['DENOMINAC'],
+            denominacion=row['DENOMINACIÓN'],
             cantidad=row['CANTIDAD'],
             peso_unitario=row['PESO UNIT.'],
             peso_total=row['PESO TOTAL'],
-            construye_en=row['ONSTRUYE EN'],
-            clasificacion=row['CLASIFICACÍ']
         )
+
 
 
 # OPERARIO

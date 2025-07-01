@@ -53,7 +53,7 @@ class Tarea(models.Model):
     estructura = models.CharField(max_length=100, blank=True)
     plano_codigo = models.CharField(max_length=50, blank=True)
     posicion = models.CharField(max_length=50, blank=True)
-    enominacion = models.CharField(max_length=100, blank=True)
+    denominacion = models.CharField(max_length=100, blank=True)
     cantidad = models.IntegerField(null=True, blank=True)
     peso_unitario = models.FloatField(null=True, blank=True)
     peso_total = models.FloatField(null=True, blank=True)
