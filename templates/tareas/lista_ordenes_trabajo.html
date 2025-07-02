@@ -1,16 +1,62 @@
 {% extends 'base.html' %}
+
+{% block title %}Órdenes de Trabajo{% endblock %}
+
 {% block content %}
-  <h2>Órdenes de Trabajo</h2>
-  <a href="{% url 'crear_orden_trabajo' %}">+ Nueva Orden de Trabajo</a>
-  <ul>
-    {% for orden in ordenes %}
-      <li>
-        <a href="{% url 'detalle_orden_trabajo' orden.id %}">
-          {{ orden.nombre }} ({{ orden.fecha_creacion|date:"Y-m-d H:i" }})
-        </a>
-      </li>
+
+<h1 class="mb-4">Órdenes de Trabajo</h1>
+
+{% if es_encargado %}
+<a href="{% url 'crear_orden_trabajo' %}" class="btn btn-primary mb-3">+ Nueva Orden de Trabajo</a>
+{% endif %}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Tareas Totales</th>
+            <th>Completadas</th>
+            <th>Progreso</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+<tbody>
+    {% for item in ordenes %}
+    {% with progreso=0 %}
+        {% if item.total > 0 %}
+            {% widthratio item.completadas item.total 100 as progreso %}
+        {% endif %}
+    {% endwith %}
+    <tr>
+        <td>{{ item.orden.nombre }}</td>
+        <td>{{ item.total }}</td>
+        <td>{{ item.completadas }}</td>
+        <td style="width: 250px;">
+            <div class="progress">
+                <div class="progress-bar 
+                    {% if progreso < 50 %} bg-danger 
+                    {% elif progreso < 100 %} bg-warning 
+                    {% else %} bg-success 
+                    {% endif %}" 
+                    role="progressbar" 
+                    style="width: {{ progreso }}%;" 
+                    aria-valuenow="{{ progreso }}" 
+                    aria-valuemin="0" 
+                    aria-valuemax="100">
+                    {{ progreso }}%
+                </div>
+            </div>
+        </td>
+        <td>
+            <a href="{% url 'detalle_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-info">Ver Tareas</a>
+        </td>
+    </tr>
     {% empty %}
-      <li>No hay órdenes de trabajo.</li>
+    <tr>
+        <td colspan="5">No hay órdenes de trabajo.</td>
+    </tr>
     {% endfor %}
-  </ul>
+</tbody>
+</table>
+
 {% endblock %}

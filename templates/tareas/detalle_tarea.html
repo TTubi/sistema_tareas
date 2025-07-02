@@ -16,8 +16,6 @@
         <p class="card-text"><strong>Cantidad:</strong> {{ tarea.cantidad }}</p>
         <p class="card-text"><strong>Peso Unitario:</strong> {{ tarea.peso_unitario }} kg</p>
         <p class="card-text"><strong>Peso Total:</strong> {{ tarea.peso_total }} kg</p>
-        <p class="card-text"><strong>Construye en:</strong> {{ tarea.construye_en }}</p>
-        <p class="card-text"><strong>Clasificación:</strong> {{ tarea.clasificacion }}</p>
 
         {% if tarea.plano %}
           <p class="card-text"><strong>Plano:</strong></p>
@@ -50,7 +48,7 @@
     </select>
     <button type="submit" name="accion" value="reasignar" class="btn btn-primary mt-2 mt-md-0">🔄 Reasignar</button>
   </form>
-{% endif %}
+  {% endif %}
       </div>
     </div>
   </div>

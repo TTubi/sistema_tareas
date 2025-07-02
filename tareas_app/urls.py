@@ -14,5 +14,5 @@ urlpatterns = [
     path('ordenes/', views.lista_ordenes_trabajo, name='lista_ordenes_trabajo'),
     path('ordenes/crear/', views.crear_orden_trabajo, name='crear_orden_trabajo'),
     path('ordenes/<int:orden_id>/', views.detalle_orden_trabajo, name='detalle_orden_trabajo'),
- 
+    path('orden_trabajo/<int:orden_id>/eliminar/', views.eliminar_orden_trabajo, name='eliminar_orden_trabajo'),
 ]

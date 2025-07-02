@@ -1,26 +1,107 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Orden de Trabajo: {{ orden.nombre }}{% endblock %}
+
 {% block content %}
-  <h2>{{ orden.nombre }}</h2>
-  <p>{{ orden.descripcion }}</p>
-  <p>Creada el: {{ orden.fecha_creacion|date:"Y-m-d H:i" }}</p>
 
-  <h3>Archivo Excel cargado:</h3>
-  {% if orden.archivo_excel %}
-    <a href="{{ orden.archivo_excel.url }}">Descargar archivo</a>
-  {% else %}
-    <p>No se cargó un Excel.</p>
-  {% endif %}
+<h1>Orden de Trabajo: {{ orden.nombre }}</h1>
 
-  <h3>Tareas generadas:</h3>
-  <ul>
-    {% for tarea in tareas %}
-      <li>
-        <a href="{% url 'detalle_tarea' tarea.id %}">{{ tarea.titulo }}</a> - Estado: {{ tarea.estado }}
+<hr>
+
+<form method="get" class="d-flex mb-3">
+    <input type="text" name="q" placeholder="Buscar por título..." class="form-control me-2" value="{{ busqueda }}">
+
+    <select name="estado" class="form-select me-2" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        <option value="pendiente" {% if estado_seleccionado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+        <option value="en_progreso" {% if estado_seleccionado == 'en_progreso' %}selected{% endif %}>En Progreso</option>
+        <option value="en_revision" {% if estado_seleccionado == 'en_revision' %}selected{% endif %}>En Revisión</option>
+        <option value="finalizada" {% if estado_seleccionado == 'finalizada' %}selected{% endif %}>Finalizada</option>
+        <option value="rechazada" {% if estado_seleccionado == 'rechazada' %}selected{% endif %}>Rechazada</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Buscar</button>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Estado</th>
+            <th>Asignado a</th>
+            {% if es_encargado %}<th>Acciones</th>{% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for tarea in tareas %}
+        <tr>
+            <td>{{ tarea.id }}</td>
+            <td>{{ tarea.titulo }}</td>
+            <td>
+                <span class="badge 
+                    {% if tarea.estado == 'pendiente' %} bg-secondary 
+                    {% elif tarea.estado == 'en_progreso' %} bg-primary 
+                    {% elif tarea.estado == 'en_revision' %} bg-warning 
+                    {% elif tarea.estado == 'finalizada' %} bg-success 
+                    {% elif tarea.estado == 'rechazada' %} bg-danger 
+                    {% endif %}">
+                    {{ tarea.estado|title }}
+                </span>
+            </td>
+            <td>
+                {% if tarea.asignado_a %}
+                    {{ tarea.asignado_a.usuario.username }}
+                {% else %}
+                    <span class="text-muted">Sin asignar</span>
+                {% endif %}
+            </td>
+
+            {% if es_encargado %}
+            <td>
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="tarea_id" value="{{ tarea.id }}">
+                    <select name="operario_id" class="form-select form-select-sm d-inline w-auto">
+                        {% for operario in operarios %}
+                            <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
+                                {{ operario.usuario.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-success">Asignar</button>
+                </form>
+            </td>
+            {% endif %}
+
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No hay tareas para mostrar.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Paginación -->
+<nav>
+  <ul class="pagination">
+    {% if tareas.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ tareas.previous_page_number }}&q={{ busqueda }}&estado={{ estado_seleccionado }}">Anterior</a>
       </li>
-    {% empty %}
-      <li>No hay tareas vinculadas a esta orden.</li>
-    {% endfor %}
-  </ul>
+    {% endif %}
 
-  <a href="{% url 'lista_ordenes_trabajo' %}">Volver a Órdenes de Trabajo</a>
+    <li class="page-item disabled">
+      <span class="page-link">Página {{ tareas.number }} de {{ tareas.paginator.num_pages }}</span>
+    </li>
+
+    {% if tareas.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ tareas.next_page_number }}&q={{ busqueda }}&estado={{ estado_seleccionado }}">Siguiente</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+
 {% endblock %}
