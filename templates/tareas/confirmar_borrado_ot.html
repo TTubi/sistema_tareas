@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar Borrado{% endblock %}
+
+{% block content %}
+<h1>¿Estás seguro que querés eliminar la Orden de Trabajo "{{ orden.nombre }}"?</h1>
+
+<p>Esta acción eliminará todas las tareas asociadas a la OT.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <a href="{% url 'lista_ordenes_trabajo' %}" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-danger">Eliminar</button>
+</form>
+{% endblock %}

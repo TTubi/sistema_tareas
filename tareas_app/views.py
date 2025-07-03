@@ -173,10 +173,19 @@ def lista_ordenes_trabajo(request):
     for orden in ordenes:
         total = orden.tareas.count()
         completadas = orden.tareas.filter(estado='finalizada').count()
+
+        # Calcula porcentaje
+        if total > 0:
+            progreso = int((completadas / total) * 100)
+        else:
+            progreso = 0
+
+        # Crea diccionario con los datos
         ordenes_con_info.append({
             'orden': orden,
             'total': total,
-            'completadas': completadas
+            'completadas': completadas,
+            'progreso': progreso
         })
 
     return render(request, 'tareas/lista_ordenes_trabajo.html', {
@@ -243,18 +252,21 @@ def detalle_orden_trabajo(request, orden_id):
         'operarios': operarios,
     })
 
-@require_POST
 @login_required
-def eliminar_orden_trabajo(request, orden_id):
+def borrar_orden_trabajo(request, orden_id):
     empleado = Empleado.objects.get(usuario=request.user)
-    
+
     if empleado.perfil != 'encargado':
-        return HttpResponseForbidden("Solo los encargados pueden eliminar órdenes de trabajo.")
-    
+        return HttpResponseForbidden("No tenés permiso para borrar órdenes de trabajo.")
+
     orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
-    orden.delete()
-    
-    return redirect('lista_ordenes_trabajo')  # Redirige a la lista de órdenes
+
+    if request.method == 'POST':
+        orden.delete()
+        messages.success(request, f"La Orden de Trabajo {orden.nombre} fue eliminada.")
+        return redirect('lista_ordenes_trabajo')
+
+    return render(request, 'tareas/confirmar_borrado_ot.html', {'orden': orden})
 
 # Procesar Excel
 def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):

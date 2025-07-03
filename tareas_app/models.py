@@ -4,6 +4,7 @@ from reportlab.pdfgen import canvas
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
+from reportlab.lib.utils import ImageReader
 
 # CONSTANTES
 PERFILES = (
@@ -75,56 +76,52 @@ class Tarea(models.Model):
                     self.generar_pdf()
 
         super().save(*args, **kwargs)
-def generar_pdf(self):
-    carpeta = os.path.join(settings.MEDIA_ROOT, 'reportes')
-    os.makedirs(carpeta, exist_ok=True)
+    def generar_pdf(self):
+     carpeta = os.path.join(settings.MEDIA_ROOT, 'reportes')
+     os.makedirs(carpeta, exist_ok=True)
 
-    archivo_pdf = os.path.join(carpeta, f"{self.titulo.replace(' ', '_')}.pdf")
-    c = canvas.Canvas(archivo_pdf)
-    c.setFont("Helvetica", 12)
+     archivo_pdf = os.path.join(carpeta, f"{self.titulo.replace(' ', '_')}.pdf")
+     c = canvas.Canvas(archivo_pdf)
+     c.setFont("Helvetica", 12)
 
-    y = 800
-    c.drawString(100, y, f"Tarea: {self.titulo}")
-    y -= 20
-    c.drawString(100, y, f"Descripción: {self.descripcion}")
-    y -= 20
-    c.drawString(100, y, f"Asignado a: {self.asignado_a}")
-    y -= 20
-    c.drawString(100, y, f"Creada por: {self.creada_por}")
-    y -= 20
-    c.drawString(100, y, f"Fecha creación: {self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
-    y -= 20
-    c.drawString(100, y, f"Fecha finalización: {timezone.now().strftime('%Y-%m-%d %H:%M')}")
-    y -= 40
+     y = 800
+     c.drawString(100, y, f"Tarea: {self.titulo}")
+     y -= 20
+     c.drawString(100, y, f"Descripción: {self.descripcion}")
+     y -= 20
+     c.drawString(100, y, f"Asignado a: {self.asignado_a}")
+     y -= 20
+     c.drawString(100, y, f"Creada por: {self.creada_por}")
+     y -= 20
+     c.drawString(100, y, f"Fecha creación: {self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
+     y -= 20
+     c.drawString(100, y, f"Fecha finalización: {timezone.now().strftime('%Y-%m-%d %H:%M')}")
+     y -= 40
 
-    c.drawString(100, y, "=== Detalle de fabricación ===")
-    y -= 20
-    c.drawString(100, y, f"Plano: {self.plano_codigo}")
-    y -= 20
-    c.drawString(100, y, f"Posición: {self.posicion}")
-    y -= 20
-    c.drawString(100, y, f"Denominación: {self.denominacion}")
-    y -= 20
-    c.drawString(100, y, f"Cantidad: {self.cantidad}")
-    y -= 20
-    c.drawString(100, y, f"Peso Unitario: {self.peso_unitario} kg")
-    y -= 20
-    c.drawString(100, y, f"Peso Total: {self.peso_total} kg")
-    y -= 20
-    c.drawString(100, y, f"Construye en: {self.construye_en}")
-    y -= 20
-    c.drawString(100, y, f"Clasificación: {self.clasificacion}")
-    y -= 40
-
-    # Verificar si hay espacio suficiente para Movimientos
-    if y < 150:
+     c.drawString(100, y, "=== Detalle de fabricación ===")
+     y -= 20
+     c.drawString(100, y, f"Plano: {self.plano_codigo}")
+     y -= 20
+     c.drawString(100, y, f"Posición: {self.posicion}")
+     y -= 20
+     c.drawString(100, y, f"Denominación: {self.denominacion}")
+     y -= 20
+     c.drawString(100, y, f"Cantidad: {self.cantidad}")
+     y -= 20
+     c.drawString(100, y, f"Peso Unitario: {self.peso_unitario} kg")
+     y -= 20
+     c.drawString(100, y, f"Peso Total: {self.peso_total} kg")
+     y -= 20
+     
+     # Verificar si hay espacio suficiente para Movimientos
+     if y < 150:
         c.showPage()
         c.setFont("Helvetica", 12)
         y = 800
 
-    c.drawString(100, y, "=== Movimientos ===")
-    y -= 20
-    for mov in self.movimientos.all():
+     c.drawString(100, y, "=== Movimientos ===")
+     y -= 20
+     for mov in self.movimientos.all():
         if y < 100:
             c.showPage()
             c.setFont("Helvetica", 12)
@@ -133,7 +130,7 @@ def generar_pdf(self):
         y -= 20
 
     # Agregar imagen del plano si existe
-    if self.plano and self.plano.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+     if self.plano and self.plano.name.lower().endswith(('.png', '.jpg', '.jpeg')):
         try:
             plano_path = os.path.join(settings.MEDIA_ROOT, self.plano.name)
             c.showPage()
@@ -143,7 +140,7 @@ def generar_pdf(self):
         except Exception as e:
             c.drawString(100, 780, f"Error al cargar plano: {e}")
 
-    c.save()
+     c.save()
 
 
 

@@ -37,7 +37,11 @@
         {% for tarea in tareas %}
         <tr>
             <td>{{ tarea.id }}</td>
-            <td>{{ tarea.titulo }}</td>
+            <td>
+                <a href="{% url 'detalle_tarea' tarea.id %}">
+                {{ tarea.titulo }}
+                </a>
+            </td>
             <td>
                 <span class="badge 
                     {% if tarea.estado == 'pendiente' %} bg-secondary 

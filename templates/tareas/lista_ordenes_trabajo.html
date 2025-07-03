@@ -22,11 +22,6 @@
     </thead>
 <tbody>
     {% for item in ordenes %}
-    {% with progreso=0 %}
-        {% if item.total > 0 %}
-            {% widthratio item.completadas item.total 100 as progreso %}
-        {% endif %}
-    {% endwith %}
     <tr>
         <td>{{ item.orden.nombre }}</td>
         <td>{{ item.total }}</td>
@@ -34,24 +29,27 @@
         <td style="width: 250px;">
             <div class="progress">
                 <div class="progress-bar 
-                    {% if progreso < 50 %} bg-danger 
-                    {% elif progreso < 100 %} bg-warning 
+                    {% if item.progreso < 50 %} bg-danger 
+                    {% elif item.progreso < 100 %} bg-warning 
                     {% else %} bg-success 
                     {% endif %}" 
                     role="progressbar" 
-                    style="width: {{ progreso }}%;" 
-                    aria-valuenow="{{ progreso }}" 
+                    style="width: {{ item.progreso }}%;" 
+                    aria-valuenow="{{ item.progreso }}" 
                     aria-valuemin="0" 
                     aria-valuemax="100">
-                    {{ progreso }}%
+                    {{ item.progreso }}%
                 </div>
             </div>
         </td>
         <td>
             <a href="{% url 'detalle_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-info">Ver Tareas</a>
+            {% if es_encargado %}
+            <a href="{% url 'borrar_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-danger">Borrar</a>
+            {% endif %}
         </td>
     </tr>
-    {% empty %}
+     {% empty %}
     <tr>
         <td colspan="5">No hay órdenes de trabajo.</td>
     </tr>

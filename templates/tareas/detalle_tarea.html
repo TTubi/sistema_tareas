@@ -34,21 +34,6 @@
             <button type="submit" name="accion" value="rechazar" class="btn btn-danger">❌ Rechazar</button>
           </form>
         {% endif %}
-        {% if es_encargado %}
-  <hr>
-  <h5>Reasignar tarea a otro operario</h5>
-  <form method="post" class="d-flex flex-column flex-md-row align-items-start gap-2 mt-2">
-    {% csrf_token %}
-    <select name="nuevo_operario" class="form-select" required>
-      {% for operario in operarios %}
-        <option value="{{ operario.id }}" {% if operario == tarea.asignado_a %}selected{% endif %}>
-          {{ operario.usuario.get_full_name|default:operario.usuario.username }}
-        </option>
-      {% endfor %}
-    </select>
-    <button type="submit" name="accion" value="reasignar" class="btn btn-primary mt-2 mt-md-0">🔄 Reasignar</button>
-  </form>
-  {% endif %}
       </div>
     </div>
   </div>
