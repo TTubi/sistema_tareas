@@ -20,7 +20,7 @@ def puede_asignar(empleado):
     return empleado.perfil in ['administrador', 'produccion']
 
 def puede_ver_avances(empleado):
-    return empleado.perfil in ['administrador', 'ppc', 'produccion', 'calidad', 'despacho', 'ingenieria']
+    return empleado.perfil in ['administrador', 'ppc', 'produccion', 'calidad', 'despacho', 'ingenieria', 'rrhh']
 
 def es_calidad(empleado):
     return empleado.perfil == 'calidad'
@@ -28,9 +28,37 @@ def es_calidad(empleado):
 def es_operario(empleado):
     return empleado.perfil in ['armador', 'soldador', 'pintor', 'corte']
 
+
 @login_required
 def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
+
+
+#Registrar Usuarios
+
+@login_required
+def registrar_usuario(request):
+    empleado = Empleado.objects.get(usuario=request.user)
+
+    if empleado.perfil != 'rrhh':
+        return HttpResponseForbidden("No tenés permiso para acceder a esta sección.")
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        perfil = request.POST.get('perfil')
+        nombre = request.POST.get('nombre')
+        apellido = request.POST.get('apellido')
+
+        if username and password and perfil and nombre and apellido:
+            user = User.objects.create_user(username=username, password=password, first_name=nombre, last_name=apellido)
+            Empleado.objects.create(usuario=user, perfil=perfil)
+            messages.success(request, "Usuario creado correctamente.")
+            return redirect('registrar_usuario')
+        else:
+            messages.error(request, "Todos los campos son obligatorios.")
+
+    return render(request, 'rr_hh/registrar_usuario.html')
 
 
 @login_required
@@ -95,7 +123,10 @@ def lista_ordenes_trabajo(request):
     if not puede_ver_avances(empleado):
         return HttpResponseForbidden("No tenés permiso para ver las órdenes de trabajo.")
 
-    ordenes = OrdenDeTrabajo.objects.all()
+    if empleado.perfil == 'calidad':
+        ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='en_revision').distinct()
+    else:
+        ordenes = OrdenDeTrabajo.objects.all()
 
     ordenes_con_info = []
     for orden in ordenes:
@@ -151,15 +182,19 @@ def detalle_orden_trabajo(request, orden_id):
 
     operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador', 'pintor', 'corte'])
 
-    return render(request, 'tareas/detalle_orden_trabajo.html', {
-        'orden': orden,
-        'tareas': page_obj,
-        'operarios': operarios,
-        'perfil_usuario': empleado.perfil,
-        'busqueda': busqueda,
-        'estado_seleccionado': estado
-    })
+    es_admin = empleado.perfil == 'administrador'
+    es_produccion = empleado.perfil == 'produccion'
+    puede_asignar = es_admin or es_produccion
 
+    return render(request, 'tareas/detalle_orden_trabajo.html', {
+    'orden': orden,
+    'tareas': page_obj,
+    'operarios': operarios,
+    'perfil_usuario': empleado.perfil,
+    'busqueda': busqueda,
+    'estado_seleccionado': estado,
+    'puede_asignar': puede_asignar
+})
 @login_required
 def borrar_orden_trabajo(request, orden_id):
     empleado = Empleado.objects.get(usuario=request.user)
