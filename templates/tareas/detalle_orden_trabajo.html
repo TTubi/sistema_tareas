@@ -30,7 +30,7 @@
             <th>Título</th>
             <th>Estado</th>
             <th>Asignado a</th>
-            {% if es_encargado %}<th>Acciones</th>{% endif %}
+            {% if es_ppc %}<th>Acciones</th>{% endif %}
         </tr>
     </thead>
     <tbody>
@@ -61,7 +61,7 @@
                 {% endif %}
             </td>
 
-            {% if es_encargado %}
+            {% if puede_asignar %}
             <td>
                 <form method="post" style="display:inline;">
                     {% csrf_token %}

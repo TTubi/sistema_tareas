@@ -1,40 +1,39 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="container mt-4">
+<div class="container mt-4">
     <div class="card shadow-sm">
-      <div class="card-body">
-        <h3 class="card-title">{{ tarea.titulo }}</h3>
-        <p class="card-text"><strong>Descripción:</strong> {{ tarea.descripcion }}</p>
-        <p class="card-text"><strong>Asignado a:</strong> {{ tarea.asignado_a }}</p>
-        <p class="card-text"><strong>Creado por:</strong> {{ tarea.creada_por }}</p>
-        <p class="card-text"><strong>Estado actual:</strong> <span class="badge bg-primary">{{ tarea.estado }}</span></p>
-        <p class="card-text"><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"Y-m-d H:i" }}</p>
-        <p class="card-text"><strong>Plano:</strong> {{ tarea.plano_codigo }}</p>
-        <p class="card-text"><strong>Posición:</strong> {{ tarea.posicion }}</p>
-        <p class="card-text"><strong>Denominación:</strong> {{ tarea.denominacion }}</p>
-        <p class="card-text"><strong>Cantidad:</strong> {{ tarea.cantidad }}</p>
-        <p class="card-text"><strong>Peso Unitario:</strong> {{ tarea.peso_unitario }} kg</p>
-        <p class="card-text"><strong>Peso Total:</strong> {{ tarea.peso_total }} kg</p>
+        <div class="card-body">
+            <h3 class="card-title">{{ tarea.titulo }}</h3>
+            <p class="card-text"><strong>Descripción:</strong> {{ tarea.descripcion }}</p>
+            <p class="card-text"><strong>Asignado a:</strong> {{ tarea.asignado_a }}</p>
+            <p class="card-text"><strong>Creado por:</strong> {{ tarea.creada_por }}</p>
+            <p class="card-text"><strong>Estado actual:</strong> 
+                <span class="badge bg-primary">{{ tarea.estado }}</span>
+            </p>
+            <p class="card-text"><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"Y-m-d H:i" }}</p>
+            <p class="card-text"><strong>Plano:</strong> {{ tarea.plano_codigo }}</p>
+            <p class="card-text"><strong>Posición:</strong> {{ tarea.posicion }}</p>
+            <p class="card-text"><strong>Denominación:</strong> {{ tarea.denominacion }}</p>
+            <p class="card-text"><strong>Cantidad:</strong> {{ tarea.cantidad }}</p>
+            <p class="card-text"><strong>Peso Unitario:</strong> {{ tarea.peso_unitario }} kg</p>
+            <p class="card-text"><strong>Peso Total:</strong> {{ tarea.peso_total }} kg</p>
 
-        {% if tarea.plano %}
-          <p class="card-text"><strong>Plano:</strong></p>
-          <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
-        {% endif %}
+            {% if tarea.plano %}
+                <p class="card-text"><strong>Plano adjunto:</strong></p>
+                <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
+            {% endif %}
 
-        {% if es_operario and tarea.estado == 'pendiente' %}
-          <form method="post">
-            {% csrf_token %}
-            <button type="submit" name="accion" value="enviar_control" class="btn btn-warning">📤 Enviar a control</button>
-          </form>
-        {% elif es_controlador %}
-          <form method="post" class="d-flex gap-2 mt-3">
-            {% csrf_token %}
-            <button type="submit" name="accion" value="aceptar" class="btn btn-success">✅ Aceptar</button>
-            <button type="submit" name="accion" value="rechazar" class="btn btn-danger">❌ Rechazar</button>
-          </form>
-        {% endif %}
-      </div>
+            {% if es_calidad %}
+            <form method="post" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="aceptar" class="btn btn-success">✅ Aceptar</button>
+                <button type="submit" name="accion" value="rechazar" class="btn btn-danger">❌ Rechazar</button>
+            </form>
+            {% endif %}
+
+        </div>
     </div>
-  </div>
+</div>
 {% endblock %}
+

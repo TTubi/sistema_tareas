@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='empleado',
             name='perfil',
-            field=models.CharField(choices=[('operario', 'Operario'), ('controlador', 'Controlador'), ('encargado', 'Encargado'), ('admin', 'Administrador')], max_length=20),
+            field=models.CharField(choices=[('operario', 'Operario'), ('calidad', 'calidad'), ('ppc', 'ppc'), ('admin', 'Administrador')], max_length=20),
         ),
         migrations.AlterField(
             model_name='tarea',

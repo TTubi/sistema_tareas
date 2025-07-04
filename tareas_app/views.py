@@ -13,132 +13,64 @@ from django.contrib import messages
 import pandas as pd
 import numpy as np
 
+def es_admin(empleado):
+    return empleado.perfil == 'administrador'
+
+def puede_asignar(empleado):
+    return empleado.perfil in ['administrador', 'produccion']
+
+def puede_ver_avances(empleado):
+    return empleado.perfil in ['administrador', 'ppc', 'produccion', 'calidad', 'despacho', 'ingenieria']
+
+def es_calidad(empleado):
+    return empleado.perfil == 'calidad'
+
+def es_operario(empleado):
+    return empleado.perfil in ['armador', 'soldador', 'pintor', 'corte']
+
 @login_required
 def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
 
-@login_required
-def lista_tareas(request):
-    empleado = get_object_or_404(Empleado, usuario=request.user)
-
-    if empleado.perfil == 'operario':
-        tareas = Tarea.objects.filter(asignado_a=empleado)
-    elif empleado.perfil == 'controlador':
-        tareas = Tarea.objects.filter(estado='en_progreso')
-    else:
-        tareas = Tarea.objects.all()
-
-    # Procesar asignación solo si es encargado
-    if request.method == 'POST' and empleado.perfil == 'encargado':
-        tarea_id = request.POST.get('tarea_id')
-        operario_id = request.POST.get('operario_id')
-
-        tarea = get_object_or_404(Tarea, id=tarea_id)
-        operario = get_object_or_404(Empleado, id=operario_id, perfil='operario')
-
-        tarea.asignado_a = operario
-        tarea.save()
-
-        return redirect('lista_tareas')
-
-    # Para mostrar el selector en el template
-    operarios = Empleado.objects.filter(perfil='operario') if empleado.perfil == 'encargado' else []
-
-    return render(request, 'tareas/lista_tareas.html', {
-        'tareas': tareas,
-        'es_encargado': empleado.perfil == 'encargado',
-        'operarios': operarios,
-    })
 
 @login_required
 def detalle_tarea(request, tarea_id):
-    tarea = get_object_or_404(Tarea, pk=tarea_id)
+    tarea = get_object_or_404(Tarea, id=tarea_id)
     empleado = Empleado.objects.get(usuario=request.user)
 
-    es_operario = empleado.perfil == 'operario'
-    es_controlador = empleado.perfil == 'controlador'
-    es_encargado = empleado.perfil == 'encargado'
+    es_calidad = empleado.perfil == 'calidad'
+    puede_ver = empleado.perfil in ['administrador', 'produccion', 'ppc', 'ingenieria', 'calidad', 'despacho']
 
-    # Validación de acceso por perfil
-    if es_operario:
-        if tarea.asignado_a != empleado:
-            return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
+    if not puede_ver:
+        return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
 
-    elif es_controlador:
-        if tarea.estado not in ['en_revision', 'finalizada', 'rechazada']:
-            return HttpResponseForbidden("Solo podés acceder a tareas en revisión o ya resueltas.")
-        
-    elif not es_encargado:
-        # Solo prohíbe si no es ninguno de los perfiles aceptados
-        return HttpResponseForbidden("No tenés permiso para ver esta tarea.")    
-
-
-    if request.method == 'POST':
+    if request.method == 'POST' and es_calidad:
         accion = request.POST.get('accion')
 
-        if es_operario and accion == 'enviar_control':
-            tarea.estado = 'en_revision'
+        if accion == 'aceptar':
+            tarea.estado = 'finalizada'
             tarea.save()
+            messages.success(request, "Tarea aceptada correctamente.")
+            return redirect('detalle_orden_trabajo', tarea.orden.id)
 
-        elif es_controlador:
-            if accion == 'aceptar':
-                tarea.estado = 'finalizada'
-            elif accion == 'rechazar':
-                tarea.estado = 'pendiente'
-                tarea.save()
-                tarea.generar_pdf()
-            elif accion == 'rechazada':
-                tarea.estado = 'rechazada'
+        elif accion == 'rechazar':
+            tarea.estado = 'rechazada'
             tarea.save()
-
-        elif es_encargado and accion == 'reasignar':
-            nuevo_operario_id = request.POST.get('nuevo_operario')
-            nuevo_operario = get_object_or_404(Empleado, id=nuevo_operario_id, perfil='operario')
-            tarea.asignado_a = nuevo_operario
-            tarea.save()
-            messages.success(request, "La tarea fue reasignada correctamente.")
-            Movimiento.objects.create(
-                tarea=tarea,
-                estado_anterior=f"Asignado a {anterior}",
-                estado_nuevo=f"Asignado a {nuevo_operario}"
-            )
-            return redirect('detalle_tarea', tarea_id=tarea.id)
-
-    operarios = Empleado.objects.filter(perfil='operario') if es_encargado else []
+            messages.success(request, "Tarea rechazada.")
+            return redirect('detalle_orden_trabajo', tarea.orden.id)
 
     return render(request, 'tareas/detalle_tarea.html', {
         'tarea': tarea,
-        'es_operario': es_operario,
-        'es_controlador': es_controlador,
-        'es_encargado': es_encargado,
+        'es_calidad': es_calidad
     })
 
-
-@login_required
-def crear_tarea(request):
-    empleado = Empleado.objects.get(usuario=request.user)
-
-    if empleado.perfil != 'encargado':
-        return HttpResponseForbidden("Solo los encargados pueden crear tareas.")
-
-    if request.method == 'POST':
-        form = TareaForm(request.POST, request.FILES)
-        if form.is_valid():
-            tarea = form.save(commit=False)
-            tarea.creada_por = empleado
-            tarea.estado = 'pendiente'
-            tarea.save()
-            return redirect('lista_tareas')  # Redirige a la lista después de crear
-    else:
-        form = TareaForm()
-
-    return render(request, 'tareas/crear_tarea.html', {'form': form})
 
 @login_required
 def crear_orden_trabajo(request):
     empleado = Empleado.objects.get(usuario=request.user)
-    if empleado.perfil != 'encargado':
-        return HttpResponseForbidden("Solo los encargados pueden crear órdenes de trabajo.")
+
+    if not puede_asignar(empleado):
+        return HttpResponseForbidden("No tenés permiso para crear órdenes.")
 
     if request.method == 'POST':
         form = OrdenDeTrabajoForm(request.POST, request.FILES)
@@ -156,31 +88,21 @@ def crear_orden_trabajo(request):
 
     return render(request, 'tareas/crear_orden_trabajo.html', {'form': form})
 
+@login_required
 def lista_ordenes_trabajo(request):
     empleado = Empleado.objects.get(usuario=request.user)
 
-    if empleado.perfil == 'encargado':
-        ordenes = OrdenDeTrabajo.objects.all()
-    elif empleado.perfil == 'operario':
-        ordenes = OrdenDeTrabajo.objects.filter(tareas__asignado_a=empleado).distinct()
-    elif empleado.perfil == 'controlador':
-        ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='en_revision').distinct()
-    else:
-        ordenes = OrdenDeTrabajo.objects.none()
+    if not puede_ver_avances(empleado):
+        return HttpResponseForbidden("No tenés permiso para ver las órdenes de trabajo.")
 
-    # Armamos lista con totales y completadas
+    ordenes = OrdenDeTrabajo.objects.all()
+
     ordenes_con_info = []
     for orden in ordenes:
         total = orden.tareas.count()
         completadas = orden.tareas.filter(estado='finalizada').count()
+        progreso = int((completadas / total) * 100) if total > 0 else 0
 
-        # Calcula porcentaje
-        if total > 0:
-            progreso = int((completadas / total) * 100)
-        else:
-            progreso = 0
-
-        # Crea diccionario con los datos
         ordenes_con_info.append({
             'orden': orden,
             'total': total,
@@ -190,75 +112,60 @@ def lista_ordenes_trabajo(request):
 
     return render(request, 'tareas/lista_ordenes_trabajo.html', {
         'ordenes': ordenes_con_info,
-        'es_encargado': empleado.perfil == 'encargado'
+        'perfil_usuario': empleado.perfil
     })
-
 
 @login_required
 def detalle_orden_trabajo(request, orden_id):
     orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
     empleado = Empleado.objects.get(usuario=request.user)
 
-    # Solo los encargados pueden asignar
-    if request.method == 'POST' and empleado.perfil == 'encargado':
+    if not puede_ver_avances(empleado):
+        return HttpResponseForbidden("No tenés acceso a esta orden.")
+
+    if request.method == 'POST' and puede_asignar(empleado):
         tarea_id = request.POST.get('tarea_id')
         operario_id = request.POST.get('operario_id')
 
         tarea = get_object_or_404(orden.tareas, id=tarea_id)
-        operario = get_object_or_404(Empleado, id=operario_id, perfil='operario')
+        operario = get_object_or_404(Empleado, id=operario_id, perfil__in=['armador', 'soldador', 'pintor', 'corte'])
 
         tarea.asignado_a = operario
         tarea.save()
-        messages.success(request, f"Tarea {tarea.id} asignada correctamente a {operario.usuario.username}.")
-        
+        messages.success(request, f"Tarea {tarea.id} asignada a {operario.nombre}.")
         return redirect('detalle_orden_trabajo', orden_id=orden.id)
 
-    # Mostrar tareas según rol
-    if empleado.perfil == 'encargado':
-        tareas = orden.tareas.all()
-        operarios = Empleado.objects.filter(perfil='operario')
-    elif empleado.perfil == 'operario':
-        tareas = orden.tareas.filter(asignado_a=empleado)
-        operarios = []
-    elif empleado.perfil == 'controlador':
-        tareas = orden.tareas.filter(estado='en_revision')
-        operarios = []
-    else:
-        return HttpResponseForbidden("No tenés permiso para ver esta Orden de Trabajo.")
+    tareas = orden.tareas.all()
 
-    # Buscador por título
     busqueda = request.GET.get('q', '')
     if busqueda:
         tareas = tareas.filter(titulo__icontains=busqueda)
 
-    # Filtro por estado
     estado = request.GET.get('estado', '')
     if estado:
         tareas = tareas.filter(estado=estado)
 
-    # Paginación
     paginator = Paginator(tareas, 100)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador', 'pintor', 'corte'])
+
     return render(request, 'tareas/detalle_orden_trabajo.html', {
         'orden': orden,
         'tareas': page_obj,
-        'busqueda': busqueda,
-        'estado_seleccionado': estado,
-        'es_encargado': empleado.perfil == 'encargado',
-        'es_operario': empleado.perfil == 'operario',
-        'es_controlador': empleado.perfil == 'controlador',
         'operarios': operarios,
+        'perfil_usuario': empleado.perfil,
+        'busqueda': busqueda,
+        'estado_seleccionado': estado
     })
 
 @login_required
 def borrar_orden_trabajo(request, orden_id):
     empleado = Empleado.objects.get(usuario=request.user)
 
-    if empleado.perfil != 'encargado':
+    if not puede_asignar(empleado):
         return HttpResponseForbidden("No tenés permiso para borrar órdenes de trabajo.")
-
     orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
 
     if request.method == 'POST':
@@ -330,70 +237,6 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
             peso_unitario=peso_unit,
             peso_total=peso_total,
         )
-
-
-
-# OPERARIO
-
-
-@login_required
-def tareas_operario(request):
-    empleado = Empleado.objects.get(usuario=request.user)
-    if empleado.perfil != 'operario':
-        return HttpResponseForbidden("Solo operarios pueden ver esta página.")
-
-    tareas = Tarea.objects.filter(asignado_a=empleado, estado='pendiente')
-    return render(request, 'tareas/tareas_operario.html', {'tareas': tareas})
-
-def detalle_tarea_operario(request, tarea_id):
-    tarea = get_object_or_404(Tarea, id=tarea_id)
-    return render(request, 'detalle_tarea.html', {'tarea': tarea})
-
-@require_POST
-@login_required
-def marcar_completada(request, tarea_id):
-    empleado = Empleado.objects.get(usuario=request.user)
-    tarea = Tarea.objects.get(id=tarea_id)
-
-    if tarea.asignado_a != empleado or empleado.perfil != 'operario':
-        return HttpResponseForbidden("No podés modificar esta tarea.")
-
-    tarea.estado = 'en_revision'
-    tarea.save()
-    return HttpResponseRedirect(reverse('tareas_operario'))
-
-# CONTROLADOR
-
-@login_required
-def tareas_para_controlar(request):
-    empleado = Empleado.objects.get(usuario=request.user)
-    if empleado.perfil != 'controlador':
-        return HttpResponseForbidden("Solo controladores pueden ver esta página.")
-
-    tareas = Tarea.objects.filter(estado='en_revision')
-    return render(request, 'tareas/tareas_controlador.html', {'tareas': tareas})
-
-def detalle_tarea_controlador(request, tarea_id):
-    tarea = get_object_or_404(Tarea, id=tarea_id)
-    return render(request, 'detalle_tarea.html', {'tarea': tarea})
-
-@require_POST
-@login_required
-def resolver_tarea(request, tarea_id):
-    empleado = Empleado.objects.get(usuario=request.user)
-    if empleado.perfil != 'controlador':
-        return HttpResponseForbidden("No autorizado.")
-
-    tarea = Tarea.objects.get(id=tarea_id)
-    accion = request.POST.get('accion')
-
-    if accion == 'aceptar':
-        tarea.estado = 'finalizada'
-    elif accion == 'rechazar':
-        tarea.estado = 'pendiente'
-    tarea.save()
-
-    return HttpResponseRedirect(reverse('tareas_para_controlar'))
 
 # Cerrar sesion
 def cerrar_sesion(request):

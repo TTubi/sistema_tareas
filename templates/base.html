@@ -14,11 +14,11 @@
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
-                        {% if user.empleado.perfil == 'encargado' %}
+                        {% if user.empleado.perfil == 'ppc' %}
                             <li class="nav-item"><a class="nav-link" href=></a></li>
                         {% elif user.empleado.perfil == 'operario' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'tareas_operario' %}">Mis Tareas</a></li>
-                        {% elif user.empleado.perfil == 'controlador' %}
+                        {% elif user.empleado.perfil == 'calidad' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'tareas_para_controlar' %}">Controlar Tareas</a></li>
                         {% endif %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'cerrar' %}">Cerrar sesión</a></li>

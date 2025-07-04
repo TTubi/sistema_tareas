@@ -7,12 +7,21 @@ from django.contrib.auth.models import User
 from reportlab.lib.utils import ImageReader
 
 # CONSTANTES
-PERFILES = (
-    ('operario', 'Operario'),
-    ('controlador', 'Controlador'),
-    ('encargado', 'Encargado'),
-    ('admin', 'Administrador'),
-)
+PERFILES = [
+    ('ingenieria', 'Ingeniería'),
+    ('calidad', 'Calidad'),
+    ('despacho', 'Despacho'),
+    ('rrhh', 'RRHH'),
+    ('produccion', 'Producción'),
+    ('ppc', 'PPC'),
+    ('administrador', 'Administrador'),
+
+    # Perfiles hipotéticos solo para registro de trazabilidad
+    ('armador', 'Armador'),
+    ('soldador', 'Soldador'),
+    ('pintor', 'Pintor'),
+    ('corte', 'Corte'),
+]
 
 ESTADOS = (
         ('pendiente', 'Pendiente'),
@@ -25,12 +34,12 @@ ESTADOS = (
 # MODELOS
 
 class Empleado(models.Model):
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE)
-    perfil = models.CharField(max_length=20, choices=PERFILES)
-
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    nombre = models.CharField(max_length=100)
+    perfil = models.CharField(max_length=50, choices=PERFILES)
 
     def __str__(self):
-        return f"{self.usuario.username} ({self.perfil})"
+        return self.nombre
 
 class OrdenDeTrabajo(models.Model):
     nombre = models.CharField(max_length=200)

@@ -3,7 +3,7 @@ USUARIOS
 - nombre
 - email
 - contraseña
-- rol (administrador, supervisor, operario, controlador)
+- rol (administrador, supervisor, operario, calidad)
 
 TAREAS
 - id

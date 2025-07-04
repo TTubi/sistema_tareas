@@ -6,7 +6,7 @@
 
 <h1 class="mb-4">Órdenes de Trabajo</h1>
 
-{% if es_encargado %}
+{% if perfil_usuario == 'administrador' or perfil_usuario == 'produccion' %}
 <a href="{% url 'crear_orden_trabajo' %}" class="btn btn-primary mb-3">+ Nueva Orden de Trabajo</a>
 {% endif %}
 
@@ -20,41 +20,42 @@
             <th>Acciones</th>
         </tr>
     </thead>
-<tbody>
-    {% for item in ordenes %}
-    <tr>
-        <td>{{ item.orden.nombre }}</td>
-        <td>{{ item.total }}</td>
-        <td>{{ item.completadas }}</td>
-        <td style="width: 250px;">
-            <div class="progress">
-                <div class="progress-bar 
-                    {% if item.progreso < 50 %} bg-danger 
-                    {% elif item.progreso < 100 %} bg-warning 
-                    {% else %} bg-success 
-                    {% endif %}" 
-                    role="progressbar" 
-                    style="width: {{ item.progreso }}%;" 
-                    aria-valuenow="{{ item.progreso }}" 
-                    aria-valuemin="0" 
-                    aria-valuemax="100">
-                    {{ item.progreso }}%
+    <tbody>
+        {% for item in ordenes %}
+        <tr>
+            <td>{{ item.orden.nombre }}</td>
+            <td>{{ item.total }}</td>
+            <td>{{ item.completadas }}</td>
+            <td style="width: 250px;">
+                <div class="progress">
+                    <div class="progress-bar 
+                        {% if item.progreso < 50 %} bg-danger 
+                        {% elif item.progreso < 100 %} bg-warning 
+                        {% else %} bg-success 
+                        {% endif %}" 
+                        role="progressbar" 
+                        style="width: {{ item.progreso }}%;" 
+                        aria-valuenow="{{ item.progreso }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                        {{ item.progreso }}%
+                    </div>
                 </div>
-            </div>
-        </td>
-        <td>
-            <a href="{% url 'detalle_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-info">Ver Tareas</a>
-            {% if es_encargado %}
-            <a href="{% url 'borrar_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-danger">Borrar</a>
-            {% endif %}
-        </td>
-    </tr>
-     {% empty %}
-    <tr>
-        <td colspan="5">No hay órdenes de trabajo.</td>
-    </tr>
-    {% endfor %}
-</tbody>
+            </td>
+            <td>
+                <a href="{% url 'detalle_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-info">Ver Tareas</a>
+                
+                {% if perfil_usuario == 'administrador' or perfil_usuario == 'produccion' %}
+                <a href="{% url 'borrar_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-danger">Borrar</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No hay órdenes de trabajo.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 {% endblock %}
