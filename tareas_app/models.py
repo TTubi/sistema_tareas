@@ -49,7 +49,13 @@ class OrdenDeTrabajo(models.Model):
     creada_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f"OT {self.id} - {self.nombre}"
+            return f"OT {self.id} - {self.nombre}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # Primero guarda en la base de datos
+
+        carpeta_ot = os.path.join(settings.MEDIA_ROOT, 'reportes', self.nombre.replace(' ', '_'))
+        os.makedirs(carpeta_ot, exist_ok=True)
 
 class Tarea(models.Model):
     titulo = models.CharField(max_length=100)
