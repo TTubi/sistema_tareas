@@ -37,9 +37,19 @@ class Empleado(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     nombre = models.CharField(max_length=100)
     perfil = models.CharField(max_length=50, choices=PERFILES)
+    es_externo = models.BooleanField(default=False)
 
     def __str__(self):
         return self.nombre
+    
+class AgenteExterno(models.Model):
+    nombre = models.CharField(max_length=100)
+    empresa = models.CharField(max_length=100, blank=True, null=True)
+    contacto = models.CharField(max_length=100, blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre    
 
 class OrdenDeTrabajo(models.Model):
     nombre = models.CharField(max_length=200)
@@ -73,6 +83,7 @@ class Tarea(models.Model):
     cantidad = models.IntegerField(null=True, blank=True)
     peso_unitario = models.FloatField(null=True, blank=True)
     peso_total = models.FloatField(null=True, blank=True)
+    agente_externo = models.ForeignKey(AgenteExterno, null=True, blank=True, on_delete=models.SET_NULL)
 
     def save(self, *args, **kwargs):
         # Comprobar si el estado cambió

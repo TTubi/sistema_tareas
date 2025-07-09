@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from .models import Tarea, Empleado, OrdenDeTrabajo
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno
 from django.contrib.auth.models import User
-from .forms import TareaForm, OrdenDeTrabajoForm
+from .forms import TareaForm, OrdenDeTrabajoForm, AgenteExternoForm, AsignarAgenteExternoForm
 from django.views.decorators.http import require_POST
-from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.urls import reverse
 from django.shortcuts import redirect
 from django.contrib.auth import logout
@@ -28,12 +28,58 @@ def es_calidad(empleado):
 def es_operario(empleado):
     return empleado.perfil in ['armador', 'soldador', 'pintor', 'corte']
 
+def es_rrhh(user):
+    return hasattr(user, 'empleado') and user.empleado.perfil == 'rrhh'
+
 
 @login_required
 def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
 
+# Inicio
+@login_required
+def inicio(request):
+    empleado = Empleado.objects.get(usuario=request.user)
+    accesos = []
+    usuario = request.user
 
+    # Calidad
+    if es_calidad(empleado):
+        accesos.append(('Ver tareas', 'lista_ordenes_trabajo'))
+
+    # PPC
+    if empleado.perfil == 'ppc':
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    # RRHH
+    if es_rrhh(empleado):
+        accesos.append(('Registrar usuario', 'registrar_usuario'))
+        accesos.append(('Registrar agente externo', 'gestionar_externos'))
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    # Administrador
+    if es_admin(empleado):
+        accesos.append(('Registrar usuario', 'registrar_usuario'))
+        accesos.append(('Registrar agente externo', 'gestionar_externos'))
+        accesos.append(('Crear orden de trabajo', 'crear_orden_trabajo'))
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    # Despacho
+    if empleado.perfil == 'despacho':
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    # Ingeniería
+    if empleado.perfil == 'ingenieria':
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    # Producción (Jefe)
+    if empleado.perfil == 'produccion':
+        accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+
+    return render(request, 'inicio.html', {
+        'empleado': empleado,
+        'accesos': accesos
+    })
 #Registrar Usuarios
 
 @login_required
@@ -60,6 +106,37 @@ def registrar_usuario(request):
 
     return render(request, 'rr_hh/registrar_usuario.html')
 
+# Añadir externos
+@user_passes_test(es_rrhh)
+def gestionar_externos(request):
+    if request.method == 'POST':
+        form = AgenteExternoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('gestionar_externos')
+    else:
+        form = AgenteExternoForm()
+        agentes = AgenteExterno.objects.all()
+        return render(request, 'rr_hh/gestionar_externos.html', {'form': form, 'agentes': agentes})
+        form = AgenteExternoForm()
+        externos = Empleado.objects.filter(es_externo=True)
+    return render(request, 'rr_hh/gestionar_externos.html', {'form': form, 'externos': externos})
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['admin', 'produccion'])
+def asignar_a_agente_externo(request):
+    if request.method == 'POST':
+        form = AsignarAgenteExternoForm(request.POST)
+        if form.is_valid():
+            tarea_id = form.cleaned_data['tarea_id']
+            agente = form.cleaned_data['agente_externo']
+            tarea = get_object_or_404(Tarea, id=tarea_id)
+            tarea.agente_externo = agente
+            tarea.asignado_a = None  # asegurarse de que no quede asignado a un interno
+            tarea.save()
+            messages.success(request, f"Tarea {tarea.id} asignada a {agente.nombre}.")
+            return redirect('detalle_orden_trabajo', orden_id=tarea.orden.id)
+    return HttpResponseBadRequest("Datos inválidos.")
 
 @login_required
 def detalle_tarea(request, tarea_id):
@@ -150,20 +227,35 @@ def lista_ordenes_trabajo(request):
 def detalle_orden_trabajo(request, orden_id):
     orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
     empleado = Empleado.objects.get(usuario=request.user)
+    tipo = None
 
     if not puede_ver_avances(empleado):
         return HttpResponseForbidden("No tenés acceso a esta orden.")
 
     if request.method == 'POST' and puede_asignar(empleado):
         tarea_id = request.POST.get('tarea_id')
-        operario_id = request.POST.get('operario_id')
-
+        tipo = request.POST.get('tipo_asignacion')
         tarea = get_object_or_404(orden.tareas, id=tarea_id)
-        operario = get_object_or_404(Empleado, id=operario_id, perfil__in=['armador', 'soldador', 'pintor', 'corte'])
 
-        tarea.asignado_a = operario
-        tarea.save()
-        messages.success(request, f"Tarea {tarea.id} asignada a {operario.nombre}.")
+    if tipo == 'tercerizado':
+        agente_id = request.POST.get('agente_externo_id')
+        if agente_id:
+            agente = get_object_or_404(AgenteExterno, id=agente_id)
+            tarea.agente_externo = agente
+            tarea.asignado_a = None
+            tarea.save()
+
+    elif tipo == 'empleado':
+        operario_id = request.POST.get('asignado_id')
+        if operario_id and operario_id != 'tercerizado':
+            operario = get_object_or_404(
+                Empleado,
+                id=operario_id,
+                perfil__in=['armador', 'soldador', 'pintor', 'corte']
+            )
+            tarea.asignado_a = operario
+            tarea.agente_externo = None
+            tarea.save()
         return redirect('detalle_orden_trabajo', orden_id=orden.id)
 
     tareas = orden.tareas.all()
@@ -181,20 +273,22 @@ def detalle_orden_trabajo(request, orden_id):
     page_obj = paginator.get_page(page_number)
 
     operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador', 'pintor', 'corte'])
+    agentes_externos = AgenteExterno.objects.filter(activo=True)
 
     es_admin = empleado.perfil == 'administrador'
     es_produccion = empleado.perfil == 'produccion'
-    puede_asignar = es_admin or es_produccion
+    puede_asignar_valor = es_admin or es_produccion
 
     return render(request, 'tareas/detalle_orden_trabajo.html', {
-    'orden': orden,
-    'tareas': page_obj,
-    'operarios': operarios,
-    'perfil_usuario': empleado.perfil,
-    'busqueda': busqueda,
-    'estado_seleccionado': estado,
-    'puede_asignar': puede_asignar
-})
+        'orden': orden,
+        'tareas': page_obj,
+        'operarios': operarios,
+        'perfil_usuario': empleado.perfil,
+        'busqueda': busqueda,
+        'estado_seleccionado': estado,
+        'puede_asignar': puede_asignar_valor,
+        'agentes_externos': agentes_externos,
+    })
 @login_required
 def borrar_orden_trabajo(request, orden_id):
     empleado = Empleado.objects.get(usuario=request.user)

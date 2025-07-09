@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Gestión de Agentes Externos</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Guardar</button>
+  </form>
+
+  <h3>Agentes registrados</h3>
+<ul>
+  {% for agente in agentes %}
+    <li>{{ agente.nombre }} - {{ agente.empresa }} - {{ agente.contacto }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

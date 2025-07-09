@@ -54,30 +54,51 @@
                 </span>
             </td>
             <td>
-                {% if tarea.asignado_a %}
-                    {{ tarea.asignado_a.usuario.username }}
-                {% else %}
-                    <span class="text-muted">Sin asignar</span>
-                {% endif %}
+{% if tarea.asignado_a %}
+    {{ tarea.asignado_a.usuario.username }}
+{% elif tarea.agente_externo %}
+    {{ tarea.agente_externo.nombre }} <span class="badge bg-secondary">Externo</span>
+{% else %}
+    <span class="text-muted">Sin asignar</span>
+{% endif %}
             </td>
-
             {% if puede_asignar %}
-            <td>
-                <form method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="tarea_id" value="{{ tarea.id }}">
-                    <select name="operario_id" class="form-select form-select-sm d-inline w-auto">
-                        {% for operario in operarios %}
-                            <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
-                                {{ operario.usuario.username }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn btn-sm btn-success">Asignar</button>
-                </form>
+<td>
+<form method="post" style="display:inline;">
+  {% csrf_token %}
+  <input type="hidden" name="tarea_id" value="{{ tarea.id }}">
+
+<!-- SELECT PRINCIPAL -->
+<select name="asignado_id" id="asignado_id{{ tarea.id }}" 
+        class="form-select form-select-sm d-inline w-auto"
+        onchange="checkTercerizado(this, '{{ tarea.id }}')">
+    {% for operario in operarios %}
+        <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
+            {{ operario.usuario.username }}
+        </option>
+    {% endfor %}
+<option disabled>────────</option>
+<option value="tercerizado">Tercerizar</option>
+</select>
+
+<!-- SELECT AGENTE EXTERNO -->
+<div id="agente_externo_selector{{ tarea.id }}" style="display: none; margin-top: 5px;">
+    <select name="agente_externo_id" class="form-select-sm d-inline w-auto">
+        {% for agente in agentes_externos %}
+            <option value="{{ agente.id }}">{{ agente.nombre }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- CAMPO OCULTO -->
+<input type="hidden" name="tipo_asignacion" id="tipo_asignacion_input{{ tarea.id }}" value="empleado">
+
+  <button type="submit" class="btn btn-sm btn-success">Asignar</button>
+</form>
+
+</td>
             </td>
             {% endif %}
-
         </tr>
         {% empty %}
         <tr>
@@ -87,6 +108,20 @@
     </tbody>
 </table>
 
+<script>
+  function checkTercerizado(selectElement, tareaId) {
+    const tipoInput = document.getElementById("tipo_asignacion_input" + tareaId);
+    const externoSelector = document.getElementById("agente_externo_selector" + tareaId);
+
+    if (selectElement.value === "tercerizado") {
+      tipoInput.value = "tercerizado";
+      externoSelector.style.display = "inline-block";
+    } else {
+      tipoInput.value = "empleado";
+      externoSelector.style.display = "none";
+    }
+  }
+</script>
 <!-- Paginación -->
 <nav>
   <ul class="pagination">
