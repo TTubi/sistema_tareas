@@ -144,29 +144,38 @@ def detalle_tarea(request, tarea_id):
     empleado = Empleado.objects.get(usuario=request.user)
 
     es_calidad = empleado.perfil == 'calidad'
+    es_jefe_produccion = empleado.perfil == 'produccion'
     puede_ver = empleado.perfil in ['administrador', 'produccion', 'ppc', 'ingenieria', 'calidad', 'despacho']
 
     if not puede_ver:
         return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
 
-    if request.method == 'POST' and es_calidad:
+    if request.method == 'POST':
         accion = request.POST.get('accion')
 
-        if accion == 'aceptar':
-            tarea.estado = 'finalizada'
+        if accion == 'enviar_revision' and es_jefe_produccion:
+            tarea.estado = 'en_revision'
             tarea.save()
-            messages.success(request, "Tarea aceptada correctamente.")
+            messages.success(request, "Tarea enviada a control de calidad.")
             return redirect('detalle_orden_trabajo', tarea.orden.id)
 
-        elif accion == 'rechazar':
-            tarea.estado = 'rechazada'
-            tarea.save()
-            messages.success(request, "Tarea rechazada.")
-            return redirect('detalle_orden_trabajo', tarea.orden.id)
+        if es_calidad:
+            if accion == 'aceptar':
+                tarea.estado = 'finalizada'
+                tarea.save()
+                messages.success(request, "Tarea aceptada correctamente.")
+                return redirect('detalle_orden_trabajo', tarea.orden.id)
+
+            elif accion == 'rechazar':
+                tarea.estado = 'rechazada'
+                tarea.save()
+                messages.success(request, "Tarea rechazada.")
+                return redirect('detalle_orden_trabajo', tarea.orden.id)
 
     return render(request, 'tareas/detalle_tarea.html', {
         'tarea': tarea,
-        'es_calidad': es_calidad
+        'es_calidad': es_calidad,
+        'es_jefe_produccion': es_jefe_produccion,
     })
 
 
@@ -259,6 +268,8 @@ def detalle_orden_trabajo(request, orden_id):
         return redirect('detalle_orden_trabajo', orden_id=orden.id)
 
     tareas = orden.tareas.all()
+    if empleado.perfil == 'calidad':
+        tareas = tareas.filter(estado='en_revision')
 
     busqueda = request.GET.get('q', '')
     if busqueda:

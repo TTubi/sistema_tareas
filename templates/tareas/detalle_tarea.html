@@ -23,6 +23,15 @@
                 <p class="card-text"><strong>Plano adjunto:</strong></p>
                 <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
             {% endif %}
+            {% if es_jefe_produccion and tarea.estado == 'pendiente' %}
+  <form method="post" class="mb-3">
+    {% csrf_token %}
+    <button name="accion" value="enviar_revision" class="btn btn-primary">
+      Enviar a Control de Calidad
+    </button>
+  </form>
+{% endif %}
+     
 
             {% if es_calidad %}
             <form method="post" class="d-flex gap-2 mt-3">
