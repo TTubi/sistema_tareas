@@ -17,7 +17,7 @@ def es_admin(empleado):
     return empleado.perfil == 'administrador'
 
 def puede_asignar(empleado):
-    return empleado.perfil in ['administrador', 'produccion']
+    return empleado.perfil in ['administrador', 'produccion', 'ingenieria']
 
 def puede_ver_avances(empleado):
     return empleado.perfil in ['administrador', 'ppc', 'produccion', 'calidad', 'despacho', 'ingenieria', 'rrhh']
@@ -28,8 +28,8 @@ def es_calidad(empleado):
 def es_operario(empleado):
     return empleado.perfil in ['armador', 'soldador', 'pintor', 'corte']
 
-def es_rrhh(user):
-    return hasattr(user, 'empleado') and user.empleado.perfil == 'rrhh'
+def es_rrhh(empleado):
+    return empleado.perfil in ['rrhh', 'ingenieria']
 
 
 @login_required
@@ -71,6 +71,7 @@ def inicio(request):
     # Ingeniería
     if empleado.perfil == 'ingenieria':
         accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+        accesos.append(('Crear orden de trabajo', 'crear_orden_trabajo'))
 
     # Producción (Jefe)
     if empleado.perfil == 'produccion':
@@ -107,7 +108,7 @@ def registrar_usuario(request):
     return render(request, 'rr_hh/registrar_usuario.html')
 
 # Añadir externos
-@user_passes_test(es_rrhh)
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'admin' ])
 def gestionar_externos(request):
     if request.method == 'POST':
         form = AgenteExternoForm(request.POST)
