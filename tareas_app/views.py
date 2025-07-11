@@ -95,7 +95,7 @@ def inicio(request):
 def registrar_usuario(request):
     empleado = Empleado.objects.get(usuario=request.user)
 
-    if empleado.perfil != 'rrhh':
+    if empleado.perfil not in ['rrhh', 'administrador']:
         return HttpResponseForbidden("No tenés permiso para acceder a esta sección.")
 
     if request.method == 'POST':
@@ -106,15 +106,17 @@ def registrar_usuario(request):
         apellido = request.POST.get('apellido')
 
         if username and password and perfil and nombre and apellido:
-            if perfil in ['armador', 'soldador']:
-             messages.error(request, "No se pueden crear usuarios con perfil de operario.")
-        return redirect('registrar_usuario')
-
-        user = User.objects.create_user(username=username, password=password, first_name=nombre, last_name=apellido)
-        Empleado.objects.create(usuario=user, perfil=perfil)
-        return redirect('registrar_usuario')
-    else:
-        messages.error(request, "Todos los campos son obligatorios.")
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=nombre,
+                last_name=apellido,
+            )
+            Empleado.objects.create(usuario=user, perfil=perfil)
+            messages.success(request, "Usuario creado correctamente.")
+            return redirect('registrar_usuario')
+        else:
+            messages.error(request, "Todos los campos son obligatorios.")
 
     return render(request, 'rr_hh/registrar_usuario.html')
 
@@ -139,7 +141,7 @@ def personal_de_taller(request):
 
 
 # Añadir externos
-@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'admin' ])
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
 def gestionar_externos(request):
     if request.method == 'POST':
         form = AgenteExternoForm(request.POST)
@@ -155,7 +157,7 @@ def gestionar_externos(request):
     return render(request, 'rr_hh/gestionar_externos.html', {'form': form, 'externos': externos})
 
 @login_required
-@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['admin', 'produccion'])
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['administrador', 'produccion'])
 def asignar_a_agente_externo(request):
     if request.method == 'POST':
         form = AsignarAgenteExternoForm(request.POST)
