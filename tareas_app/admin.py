@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Empleado, Tarea
+from .models import Empleado, Tarea, Comentario
 
 @admin.register(Empleado)
 class EmpleadoAdmin(admin.ModelAdmin):
@@ -24,3 +24,9 @@ class TareaAdmin(admin.ModelAdmin):
             'fields': ('estado', 'fecha_creacion')
         }),
     )
+
+
+@admin.register(Comentario)
+class ComentarioAdmin(admin.ModelAdmin):
+    list_display = ["tarea", "autor", "fecha_creacion"]
+    search_fields = ["texto", "autor__nombre"]

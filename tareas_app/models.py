@@ -192,5 +192,18 @@ class Movimiento(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
 
 
+class Comentario(models.Model):
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="comentarios")
+    autor = models.ForeignKey(Empleado, null=True, on_delete=models.SET_NULL)
+    texto = models.TextField()
+    imagen = models.ImageField(upload_to="comentarios/", null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        autor_nombre = self.autor.nombre if self.autor else "Anonimo"
+        return f"{autor_nombre}: {self.texto[:20]}"
+
+
+
 
 

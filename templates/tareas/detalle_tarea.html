@@ -85,6 +85,32 @@
             </script>
             {% endif %}
 
+            {% if comentarios %}
+            <h5 class="mt-4">Comentarios</h5>
+            <ul class="list-group mb-3">
+                {% for c in comentarios %}
+                <li class="list-group-item">
+                    <strong>{{ c.autor.nombre_completo|default:"Anonimo" }}</strong>
+                    <span class="text-muted small">{{ c.fecha_creacion|date:"Y-m-d H:i" }}</span>
+                    <p class="mb-1">{{ c.texto }}</p>
+                    {% if c.imagen %}
+                        <img src="{{ c.imagen.url }}" class="img-fluid mt-2" />
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if puede_comentar %}
+            <form method="post" enctype="multipart/form-data" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="agregar_comentario">
+                <textarea name="texto" class="form-control mb-2" rows="3" placeholder="Agregar comentario"></textarea>
+                <input type="file" name="imagen" class="form-control mb-2">
+                <button type="submit" class="btn btn-secondary">Guardar comentario</button>
+            </form>
+            {% endif %}
+
         </div>
     </div>
 </div>
