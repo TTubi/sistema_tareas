@@ -5,6 +5,7 @@
 {% block content %}
 <h2>Crear nueva tarea para OT: {{ orden.nombre }}</h2>
 <form method="post">
+
     {% csrf_token %}
     <div class="mb-3">
         {{ form.titulo.label_tag }}
