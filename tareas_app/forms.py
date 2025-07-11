@@ -5,12 +5,17 @@ from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno
 class TareaForm(forms.ModelForm):
     class Meta:
         model = Tarea
-        fields = ['titulo', 'descripcion', 'asignado_a', 'plano']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Mostrar solo empleados que sean operarios en el campo asignado_a
-        self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario')
+        fields = [
+            'titulo',
+            'descripcion',
+            'estructura',
+            'plano_codigo',
+            'posicion',
+            'denominacion',
+            'cantidad',
+            'peso_unitario',
+            'peso_total',
+        ]
 
 class OrdenDeTrabajoForm(forms.ModelForm):
     class Meta:
