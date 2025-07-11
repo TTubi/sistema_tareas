@@ -37,6 +37,18 @@ class Empleado(models.Model):
     perfil = models.CharField(max_length=50, choices=PERFILES)
     es_externo = models.BooleanField(default=False)
 
+    @property
+    def apellido(self):
+        """Return last name from linked user if available."""
+        return self.usuario.last_name if self.usuario else ""
+
+    @property
+    def nombre_completo(self):
+        """Convenience property for templates."""
+        if self.usuario and (self.usuario.first_name or self.usuario.last_name):
+            return f"{self.usuario.first_name} {self.usuario.last_name}".strip()
+        return self.nombre
+
     def __str__(self):
         return self.nombre
     
