@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario
 
 class TareaForm(forms.ModelForm):
     class Meta:
@@ -51,3 +51,9 @@ class AgenteExternoForm(forms.ModelForm):
 class AsignarAgenteExternoForm(forms.Form):
     tarea_id = forms.IntegerField(widget=forms.HiddenInput())
     agente_externo = forms.ModelChoiceField(queryset=AgenteExterno.objects.filter(activo=True))
+
+
+class ComentarioForm(forms.ModelForm):
+    class Meta:
+        model = Comentario
+        fields = ['texto', 'imagen']

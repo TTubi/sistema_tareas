@@ -1,8 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario
 from django.contrib.auth.models import User
-from .forms import TareaForm, OrdenDeTrabajoForm, AgenteExternoForm, AsignarAgenteExternoForm
+from .forms import (
+    TareaForm,
+    OrdenDeTrabajoForm,
+    AgenteExternoForm,
+    AsignarAgenteExternoForm,
+    ComentarioForm,
+)
 from django.views.decorators.http import require_POST
 from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.urls import reverse
@@ -224,6 +230,16 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "Tarea reasignada correctamente.")
             return redirect('detalle_tarea', tarea.id)
 
+        if accion == 'agregar_comentario' and empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador']:
+            form = ComentarioForm(request.POST, request.FILES)
+            if form.is_valid():
+                comentario = form.save(commit=False)
+                comentario.tarea = tarea
+                comentario.autor = empleado
+                comentario.save()
+                messages.success(request, "Comentario agregado.")
+                return redirect('detalle_tarea', tarea.id)
+
         if es_calidad:
             if accion == 'aceptar':
                 tarea.estado = 'finalizada'
@@ -241,6 +257,9 @@ def detalle_tarea(request, tarea_id):
         'tarea': tarea,
         'es_calidad': es_calidad,
         'es_jefe_produccion': es_jefe_produccion,
+        'comentarios': tarea.comentarios.select_related('autor').order_by('fecha_creacion'),
+        'comentario_form': ComentarioForm(),
+        'puede_comentar': empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador'],
     }
     if puede_asignar(empleado):
         context.update({
