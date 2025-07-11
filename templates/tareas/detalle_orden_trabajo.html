@@ -26,7 +26,6 @@
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>ID</th>
             <th>Título</th>
             <th>Estado</th>
             <th>Asignado a</th>
@@ -36,7 +35,6 @@
     <tbody>
         {% for tarea in tareas %}
         <tr>
-            <td>{{ tarea.id }}</td>
             <td>
                 <a href="{% url 'detalle_tarea' tarea.id %}">
                 {{ tarea.titulo }}
@@ -74,7 +72,7 @@
         onchange="checkTercerizado(this, '{{ tarea.id }}')">
     {% for operario in operarios %}
         <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
-            {{ operario.usuario.username }}
+            {{ operario.nombre }} {{ operario.apellido }}
         </option>
     {% endfor %}
 <option disabled>────────</option>

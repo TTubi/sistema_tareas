@@ -19,8 +19,6 @@ PERFILES = [
     # Perfiles hipotéticos solo para registro de trazabilidad
     ('armador', 'Armador'),
     ('soldador', 'Soldador'),
-    ('pintor', 'Pintor'),
-    ('corte', 'Corte'),
 ]
 
 ESTADOS = (

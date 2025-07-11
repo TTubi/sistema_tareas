@@ -26,15 +26,20 @@ def es_calidad(empleado):
     return empleado.perfil == 'calidad'
 
 def es_operario(empleado):
-    return empleado.perfil in ['armador', 'soldador', 'pintor', 'corte']
+    return empleado.perfil in ['armador', 'soldador',]
 
 def es_rrhh(empleado):
-    return empleado.perfil in ['rrhh', 'ingenieria']
+    return empleado.perfil in ['rrhh']
 
 
 @login_required
 def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
+
+@login_required
+def lista_usuarios(request):
+    usuarios = User.objects.all().order_by('last_name', 'first_name')
+    return render(request, 'usuarios/lista_usuarios.html', {'usuarios': usuarios})
 
 # Inicio
 @login_required
@@ -56,6 +61,8 @@ def inicio(request):
         accesos.append(('Registrar usuario', 'registrar_usuario'))
         accesos.append(('Registrar agente externo', 'gestionar_externos'))
         accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+        accesos.append(('Registrar Personal de Taller', 'personal_de_taller'))
+        accesos.append(('Lista de personal', 'lista_usuarios'))
 
     # Administrador
     if es_admin(empleado):
@@ -63,6 +70,7 @@ def inicio(request):
         accesos.append(('Registrar agente externo', 'gestionar_externos'))
         accesos.append(('Crear orden de trabajo', 'crear_orden_trabajo'))
         accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
+        accesos.append(('Registrar Personal de Taller', 'personal_de_taller'))
 
     # Despacho
     if empleado.perfil == 'despacho':
@@ -98,14 +106,37 @@ def registrar_usuario(request):
         apellido = request.POST.get('apellido')
 
         if username and password and perfil and nombre and apellido:
-            user = User.objects.create_user(username=username, password=password, first_name=nombre, last_name=apellido)
-            Empleado.objects.create(usuario=user, perfil=perfil)
-            messages.success(request, "Usuario creado correctamente.")
-            return redirect('registrar_usuario')
-        else:
-            messages.error(request, "Todos los campos son obligatorios.")
+            if perfil in ['armador', 'soldador']:
+             messages.error(request, "No se pueden crear usuarios con perfil de operario.")
+        return redirect('registrar_usuario')
+
+        user = User.objects.create_user(username=username, password=password, first_name=nombre, last_name=apellido)
+        Empleado.objects.create(usuario=user, perfil=perfil)
+        return redirect('registrar_usuario')
+    else:
+        messages.error(request, "Todos los campos son obligatorios.")
 
     return render(request, 'rr_hh/registrar_usuario.html')
+
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
+def personal_de_taller(request):
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        apellido = request.POST.get('apellido')
+        perfil = request.POST.get('perfil')
+
+        if not nombre or not apellido or perfil not in ['armador', 'soldador']:
+            messages.error(request, "Completa correctamente los datos.")
+            return redirect('personal_de_taller')
+
+        Empleado.objects.create(usuario=None, perfil=perfil)
+        messages.success(request, f"{perfil.capitalize()} registrado correctamente.")
+        return redirect('personal_de_taller')
+
+    return render(request, 'rr_hh/personal_de_taller.html')
+
 
 # Añadir externos
 @user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'admin' ])
@@ -261,7 +292,7 @@ def detalle_orden_trabajo(request, orden_id):
             operario = get_object_or_404(
                 Empleado,
                 id=operario_id,
-                perfil__in=['armador', 'soldador', 'pintor', 'corte']
+                perfil__in=['armador', 'soldador',]
             )
             tarea.asignado_a = operario
             tarea.agente_externo = None
@@ -284,7 +315,7 @@ def detalle_orden_trabajo(request, orden_id):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador', 'pintor', 'corte'])
+    operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador',])
     agentes_externos = AgenteExterno.objects.filter(activo=True)
 
     es_admin = empleado.perfil == 'administrador'
@@ -358,9 +389,13 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
         denominacion = row['DENOMINACIÓN']
         estructura = row['ID. ESTRUCT.']
         
+        if pd.isna(plano) or str(plano).strip() == '':
+            print("⚠️ Fila ignorada por plano vacío.")
+        continue
+
         if pd.isna(estructura) or pd.isna(denominacion):
             print("⚠️ Fila ignorada por falta de datos esenciales.")
-            continue  # Salta esta fila
+        continue  # Salta esta fila
 
         Tarea.objects.create(
             titulo=f"{plano} - {denominacion}",

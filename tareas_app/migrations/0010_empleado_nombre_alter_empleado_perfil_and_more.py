@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='empleado',
             name='perfil',
-            field=models.CharField(choices=[('ingenieria', 'Ingeniería'), ('calidad', 'Calidad'), ('despacho', 'Despacho'), ('rrhh', 'RRHH'), ('produccion', 'Producción'), ('ppc', 'PPC'), ('administrador', 'Administrador'), ('armador', 'Armador'), ('soldador', 'Soldador'), ('pintor', 'Pintor'), ('corte', 'Corte')], max_length=50),
+            field=models.CharField(choices=[('ingenieria', 'Ingeniería'), ('calidad', 'Calidad'), ('despacho', 'Despacho'), ('rrhh', 'RRHH'), ('produccion', 'Producción'), ('ppc', 'PPC'), ('administrador', 'Administrador'), ('armador', 'Armador'), ('soldador', 'Soldador'),], max_length=50),
         ),
         migrations.AlterField(
             model_name='empleado',

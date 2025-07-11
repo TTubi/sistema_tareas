@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import lista_usuarios
 
 urlpatterns = [
     path('<int:tarea_id>/', views.detalle_tarea, name='detalle_tarea'),
@@ -11,4 +12,6 @@ urlpatterns = [
     path('rrhh/externos/', views.gestionar_externos, name='gestionar_externos'),
     path('asignar_agente_externo/', views.asignar_a_agente_externo, name='asignar_a_agente_externo'),
     path('inicio/', views.inicio, name='inicio'),
+    path('personal-de-taller/', views.personal_de_taller, name='personal_de_taller'),
+    path('usuarios/', lista_usuarios, name='lista_usuarios'),
 ]

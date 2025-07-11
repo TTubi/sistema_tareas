@@ -45,7 +45,7 @@
             <td>
                 <a href="{% url 'detalle_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-info">Ver Tareas</a>
                 
-                {% if perfil_usuario == 'administrador' or perfil_usuario == 'produccion' %}
+                {% if perfil_usuario == 'administrador' or perfil_usuario == 'ingenieria' %}
                 <a href="{% url 'borrar_orden_trabajo' item.orden.id %}" class="btn btn-sm btn-danger">Borrar</a>
                 {% endif %}
             </td>
