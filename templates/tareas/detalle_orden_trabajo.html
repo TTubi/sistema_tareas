@@ -75,11 +75,12 @@
   <select name="asignado_id" id="asignado_id{{ tarea.id }}"
           class="form-select form-select-sm d-inline w-auto"
           onchange="checkTercerizado(this, '{{ tarea.id }}')">
-    {% for operario in operarios %}
-      <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
-        {{ operario.nombre }} {{ operario.apellido }}
-      </option>
-    {% endfor %}
+      {% for operario in operarios %}
+        <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
+          {{ operario.nombre_completo }}
+        </option>
+      {% endfor %}
+
     <option disabled>────────</option>
     <option value="tercerizado">Tercerizar</option>
   </select>

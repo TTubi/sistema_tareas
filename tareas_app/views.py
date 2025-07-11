@@ -112,7 +112,11 @@ def registrar_usuario(request):
                 first_name=nombre,
                 last_name=apellido,
             )
-            Empleado.objects.create(usuario=user, perfil=perfil)
+            Empleado.objects.create(
+                usuario=user,
+                perfil=perfil,
+                nombre=f"{nombre} {apellido}"
+            )
             messages.success(request, "Usuario creado correctamente.")
             return redirect('registrar_usuario')
         else:
@@ -133,7 +137,11 @@ def personal_de_taller(request):
             messages.error(request, "Completa correctamente los datos.")
             return redirect('personal_de_taller')
 
-        Empleado.objects.create(usuario=None, perfil=perfil)
+        Empleado.objects.create(
+            usuario=None,
+            perfil=perfil,
+            nombre=f"{nombre} {apellido}"
+        )
         messages.success(request, f"{perfil.capitalize()} registrado correctamente.")
         return redirect('personal_de_taller')
 
@@ -193,6 +201,29 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "Tarea enviada a control de calidad.")
             return redirect('detalle_orden_trabajo', tarea.orden.id)
 
+        if accion == 'reasignar' and puede_asignar(empleado):
+            tipo = request.POST.get('tipo_asignacion')
+            if tipo == 'tercerizado':
+                agente_id = request.POST.get('agente_externo_id')
+                if agente_id:
+                    agente = get_object_or_404(AgenteExterno, id=agente_id)
+                    tarea.agente_externo = agente
+                    tarea.asignado_a = None
+                    tarea.save()
+            elif tipo == 'empleado':
+                operario_id = request.POST.get('asignado_id')
+                if operario_id and operario_id != 'tercerizado':
+                    operario = get_object_or_404(
+                        Empleado,
+                        id=operario_id,
+                        perfil__in=['armador', 'soldador'],
+                    )
+                    tarea.asignado_a = operario
+                    tarea.agente_externo = None
+                    tarea.save()
+            messages.success(request, "Tarea reasignada correctamente.")
+            return redirect('detalle_tarea', tarea.id)
+
         if es_calidad:
             if accion == 'aceptar':
                 tarea.estado = 'finalizada'
@@ -206,11 +237,19 @@ def detalle_tarea(request, tarea_id):
                 messages.success(request, "Tarea rechazada.")
                 return redirect('detalle_orden_trabajo', tarea.orden.id)
 
-    return render(request, 'tareas/detalle_tarea.html', {
+    context = {
         'tarea': tarea,
         'es_calidad': es_calidad,
         'es_jefe_produccion': es_jefe_produccion,
-    })
+    }
+    if puede_asignar(empleado):
+        context.update({
+            'operarios': Empleado.objects.filter(perfil__in=['armador', 'soldador']),
+            'agentes_externos': AgenteExterno.objects.filter(activo=True),
+            'puede_asignar': True,
+        })
+
+    return render(request, 'tareas/detalle_tarea.html', context)
 
 
 @login_required
