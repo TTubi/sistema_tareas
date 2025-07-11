@@ -22,12 +22,21 @@ PERFILES = [
 ]
 
 ESTADOS = (
-        ('pendiente', 'Pendiente'),
-        ('en_progreso', 'En progreso'),
-        ('en_revision', 'En revision'),
-        ('finalizada', 'Finalizada'),
-        ('rechazada', 'Rechazada'),
-    )
+    ('pendiente', 'Pendiente'),
+    ('en_proceso', 'En proceso'),
+    ('en_revision', 'En revision'),
+    ('lista_para_pintar', 'Lista para pintar'),
+    ('galvanizado', 'Galvanizado'),
+    ('lista_para_despachar', 'Lista para despachar'),
+)
+
+SECTORES = [
+    ('armado', 'Armado'),
+    ('soldado', 'Soldado'),
+    ('pintura', 'Pintura'),
+    ('despacho', 'Despacho'),
+    ('galvanizado', 'Galvanizado'),
+]
 
 # MODELOS
 
@@ -85,6 +94,7 @@ class Tarea(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     plano = models.ImageField(upload_to='planos/', null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
+    sector = models.CharField(max_length=20, choices=SECTORES, null=True, blank=True)
     orden = models.ForeignKey(OrdenDeTrabajo, related_name='tareas', on_delete=models.CASCADE, null=True, blank=True)
     estructura = models.CharField(max_length=100, blank=True)
     plano_codigo = models.CharField(max_length=50, blank=True)
@@ -107,8 +117,8 @@ class Tarea(models.Model):
                     estado_nuevo=self.estado
                 )
 
-                # Si pasó a finalizada, crear PDF
-                if self.estado == 'finalizada':
+                # Crear PDF cuando la tarea está lista para despachar
+                if self.estado == 'lista_para_despachar':
                     self.generar_pdf()
 
         super().save(*args, **kwargs)
