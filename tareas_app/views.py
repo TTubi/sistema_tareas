@@ -349,6 +349,45 @@ def borrar_orden_trabajo(request, orden_id):
 
     return render(request, 'tareas/confirmar_borrado_ot.html', {'orden': orden})
 
+# Crear y eliminar tareas
+@login_required
+def crear_tarea(request, orden_id):
+    empleado = Empleado.objects.get(usuario=request.user)
+    if empleado.perfil not in ['ingenieria', 'administrador']:
+        return HttpResponseForbidden("No tenés permiso para crear tareas.")
+
+    orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
+
+    if request.method == 'POST':
+        form = TareaForm(request.POST, request.FILES)
+        if form.is_valid():
+            tarea = form.save(commit=False)
+            tarea.orden = orden
+            tarea.creada_por = empleado
+            tarea.save()
+            messages.success(request, "Tarea creada correctamente.")
+            return redirect('detalle_orden_trabajo', orden_id=orden.id)
+    else:
+        form = TareaForm()
+
+    return render(request, 'tareas/crear_tarea.html', {'form': form, 'orden': orden})
+
+
+@login_required
+def borrar_tarea(request, tarea_id):
+    empleado = Empleado.objects.get(usuario=request.user)
+    if empleado.perfil not in ['ingenieria', 'administrador']:
+        return HttpResponseForbidden("No tenés permiso para borrar tareas.")
+
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    if request.method == 'POST':
+        orden_id = tarea.orden.id
+        tarea.delete()
+        messages.success(request, "Tarea eliminada correctamente.")
+        return redirect('detalle_orden_trabajo', orden_id=orden_id)
+
+    return render(request, 'tareas/confirmar_borrado_tarea.html', {'tarea': tarea})
+
 # Procesar Excel
 def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
 
