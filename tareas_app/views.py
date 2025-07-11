@@ -9,15 +9,11 @@ from .forms import (
     AsignarAgenteExternoForm,
     ComentarioForm,
 )
-from django.views.decorators.http import require_POST
-from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
-from django.urls import reverse
-from django.shortcuts import redirect
+from django.http import HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import logout
 from django.core.paginator import Paginator
 from django.contrib import messages
 import pandas as pd
-import numpy as np
 
 def es_admin(empleado):
     return empleado.perfil == 'administrador'
@@ -522,11 +518,11 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
         
         if pd.isna(plano) or str(plano).strip() == '':
             print("⚠️ Fila ignorada por plano vacío.")
-        continue
+            continue
 
         if pd.isna(estructura) or pd.isna(denominacion):
             print("⚠️ Fila ignorada por falta de datos esenciales.")
-        continue  # Salta esta fila
+            continue  # Salta esta fila
 
         Tarea.objects.create(
             titulo=f"{plano} - {denominacion}",

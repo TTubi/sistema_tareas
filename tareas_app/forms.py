@@ -27,7 +27,9 @@ class OrdenDeTrabajoForm(forms.ModelForm):
   #      model = Tarea
    #     fields = ['asignado_a']
 class AsignarOperarioForm(forms.ModelForm):
-    tipo_asignacion = forms.ChoiceField(choices=[('propio', 'Interno'), ('tercerizado', 'Externo')])
+    tipo_asignacion = forms.ChoiceField(
+        choices=[('propio', 'Interno'), ('tercerizado', 'Externo')]
+    )
     asignado_a = forms.ModelChoiceField(queryset=Empleado.objects.none())
 
     def __init__(self, *args, **kwargs):
@@ -36,11 +38,9 @@ class AsignarOperarioForm(forms.ModelForm):
         if tipo == 'tercerizado':
             self.fields['asignado_a'].queryset = Empleado.objects.filter(es_externo=True)
         else:
-            self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario', es_externo=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario')
+            self.fields['asignado_a'].queryset = Empleado.objects.filter(
+                perfil__in=['armador', 'soldador'], es_externo=False
+            )
 
 
 class AgenteExternoForm(forms.ModelForm):
