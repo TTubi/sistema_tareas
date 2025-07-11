@@ -17,10 +17,11 @@
     <select name="estado" class="form-select me-2" onchange="this.form.submit()">
         <option value="">Todos los estados</option>
         <option value="pendiente" {% if estado_seleccionado == 'pendiente' %}selected{% endif %}>Pendiente</option>
-        <option value="en_progreso" {% if estado_seleccionado == 'en_progreso' %}selected{% endif %}>En Progreso</option>
+        <option value="en_proceso" {% if estado_seleccionado == 'en_proceso' %}selected{% endif %}>En Proceso</option>
         <option value="en_revision" {% if estado_seleccionado == 'en_revision' %}selected{% endif %}>En Revisión</option>
-        <option value="finalizada" {% if estado_seleccionado == 'finalizada' %}selected{% endif %}>Finalizada</option>
-        <option value="rechazada" {% if estado_seleccionado == 'rechazada' %}selected{% endif %}>Rechazada</option>
+        <option value="lista_para_pintar" {% if estado_seleccionado == 'lista_para_pintar' %}selected{% endif %}>Lista para pintar</option>
+        <option value="galvanizado" {% if estado_seleccionado == 'galvanizado' %}selected{% endif %}>Galvanizado</option>
+        <option value="lista_para_despachar" {% if estado_seleccionado == 'lista_para_despachar' %}selected{% endif %}>Lista para despachar</option>
     </select>
 
     <button type="submit" class="btn btn-primary">Buscar</button>
@@ -47,11 +48,12 @@
             </td>
             <td>
                 <span class="badge 
-                    {% if tarea.estado == 'pendiente' %} bg-secondary 
-                    {% elif tarea.estado == 'en_progreso' %} bg-primary 
-                    {% elif tarea.estado == 'en_revision' %} bg-warning 
-                    {% elif tarea.estado == 'finalizada' %} bg-success 
-                    {% elif tarea.estado == 'rechazada' %} bg-danger 
+                    {% if tarea.estado == 'pendiente' %} bg-secondary
+                    {% elif tarea.estado == 'en_proceso' %} bg-primary
+                    {% elif tarea.estado == 'en_revision' %} bg-warning
+                    {% elif tarea.estado == 'lista_para_pintar' %} bg-info
+                    {% elif tarea.estado == 'galvanizado' %} bg-secondary
+                    {% elif tarea.estado == 'lista_para_despachar' %} bg-success
                     {% endif %}">
                     {{ tarea.estado|title }}
                 </span>
