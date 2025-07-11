@@ -7,6 +7,9 @@
 <h1>Orden de Trabajo: {{ orden.nombre }}</h1>
 
 <hr>
+{% if perfil_usuario == 'ingenieria' or perfil_usuario == 'administrador' %}
+<a href="{% url 'crear_tarea' orden.id %}" class="btn btn-primary mb-3">+ Nueva Tarea</a>
+{% endif %}
 
 <form method="get" class="d-flex mb-3">
     <input type="text" name="q" placeholder="Buscar por título..." class="form-control me-2" value="{{ busqueda }}">
@@ -29,7 +32,9 @@
             <th>Título</th>
             <th>Estado</th>
             <th>Asignado a</th>
-            {% if es_ppc %}<th>Acciones</th>{% endif %}
+            {% if perfil_usuario == 'ingenieria' or perfil_usuario == 'administrador' %}
+            <th>Acciones</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -95,6 +100,11 @@
 </form>
 
 </td>
+            </td>
+            {% endif %}
+            {% if perfil_usuario == 'ingenieria' or perfil_usuario == 'administrador' %}
+            <td>
+                <a href="{% url 'borrar_tarea' tarea.id %}" class="btn btn-sm btn-danger">Eliminar</a>
             </td>
             {% endif %}
         </tr>

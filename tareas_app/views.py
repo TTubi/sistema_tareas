@@ -95,7 +95,7 @@ def inicio(request):
 def registrar_usuario(request):
     empleado = Empleado.objects.get(usuario=request.user)
 
-    if empleado.perfil != 'rrhh':
+    if empleado.perfil not in ['rrhh', 'administrador']:
         return HttpResponseForbidden("No tenés permiso para acceder a esta sección.")
 
     if request.method == 'POST':
@@ -106,15 +106,17 @@ def registrar_usuario(request):
         apellido = request.POST.get('apellido')
 
         if username and password and perfil and nombre and apellido:
-            if perfil in ['armador', 'soldador']:
-             messages.error(request, "No se pueden crear usuarios con perfil de operario.")
-        return redirect('registrar_usuario')
-
-        user = User.objects.create_user(username=username, password=password, first_name=nombre, last_name=apellido)
-        Empleado.objects.create(usuario=user, perfil=perfil)
-        return redirect('registrar_usuario')
-    else:
-        messages.error(request, "Todos los campos son obligatorios.")
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=nombre,
+                last_name=apellido,
+            )
+            Empleado.objects.create(usuario=user, perfil=perfil)
+            messages.success(request, "Usuario creado correctamente.")
+            return redirect('registrar_usuario')
+        else:
+            messages.error(request, "Todos los campos son obligatorios.")
 
     return render(request, 'rr_hh/registrar_usuario.html')
 
@@ -139,7 +141,7 @@ def personal_de_taller(request):
 
 
 # Añadir externos
-@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'admin' ])
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
 def gestionar_externos(request):
     if request.method == 'POST':
         form = AgenteExternoForm(request.POST)
@@ -155,7 +157,7 @@ def gestionar_externos(request):
     return render(request, 'rr_hh/gestionar_externos.html', {'form': form, 'externos': externos})
 
 @login_required
-@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['admin', 'produccion'])
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['administrador', 'produccion'])
 def asignar_a_agente_externo(request):
     if request.method == 'POST':
         form = AsignarAgenteExternoForm(request.POST)
@@ -346,6 +348,45 @@ def borrar_orden_trabajo(request, orden_id):
         return redirect('lista_ordenes_trabajo')
 
     return render(request, 'tareas/confirmar_borrado_ot.html', {'orden': orden})
+
+# Crear y eliminar tareas
+@login_required
+def crear_tarea(request, orden_id):
+    empleado = Empleado.objects.get(usuario=request.user)
+    if empleado.perfil not in ['ingenieria', 'administrador']:
+        return HttpResponseForbidden("No tenés permiso para crear tareas.")
+
+    orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
+
+    if request.method == 'POST':
+        form = TareaForm(request.POST, request.FILES)
+        if form.is_valid():
+            tarea = form.save(commit=False)
+            tarea.orden = orden
+            tarea.creada_por = empleado
+            tarea.save()
+            messages.success(request, "Tarea creada correctamente.")
+            return redirect('detalle_orden_trabajo', orden_id=orden.id)
+    else:
+        form = TareaForm()
+
+    return render(request, 'tareas/crear_tarea.html', {'form': form, 'orden': orden})
+
+
+@login_required
+def borrar_tarea(request, tarea_id):
+    empleado = Empleado.objects.get(usuario=request.user)
+    if empleado.perfil not in ['ingenieria', 'administrador']:
+        return HttpResponseForbidden("No tenés permiso para borrar tareas.")
+
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    if request.method == 'POST':
+        orden_id = tarea.orden.id
+        tarea.delete()
+        messages.success(request, "Tarea eliminada correctamente.")
+        return redirect('detalle_orden_trabajo', orden_id=orden_id)
+
+    return render(request, 'tareas/confirmar_borrado_tarea.html', {'tarea': tarea})
 
 # Procesar Excel
 def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
