@@ -3,10 +3,45 @@
 {% block title %}Crear Tarea{% endblock %}
 
 {% block content %}
-<h2>Crear nueva tarea</h2>
-<form method="post" enctype="multipart/form-data">
+<h2>Crear nueva tarea para OT: {{ orden.nombre }}</h2>
+<form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
+    <div class="mb-3">
+        {{ form.titulo.label_tag }}
+        {{ form.titulo }}
+    </div>
+    <div class="mb-3">
+        {{ form.descripcion.label_tag }}
+        {{ form.descripcion }}
+    </div>
+    <div class="mb-3">
+        {{ form.estructura.label_tag }}
+        {{ form.estructura }}
+    </div>
+    <div class="mb-3">
+        {{ form.plano_codigo.label_tag }}
+        {{ form.plano_codigo }}
+    </div>
+    <div class="mb-3">
+        {{ form.posicion.label_tag }}
+        {{ form.posicion }}
+    </div>
+    <div class="mb-3">
+        {{ form.denominacion.label_tag }}
+        {{ form.denominacion }}
+    </div>
+    <div class="mb-3">
+        {{ form.cantidad.label_tag }}
+        {{ form.cantidad }}
+    </div>
+    <div class="mb-3">
+        {{ form.peso_unitario.label_tag }}
+        {{ form.peso_unitario }}
+    </div>
+    <div class="mb-3">
+        {{ form.peso_total.label_tag }}
+        {{ form.peso_total }}
+    </div>
     <button type="submit" class="btn btn-primary">Guardar</button>
 </form>
 {% endblock %}
