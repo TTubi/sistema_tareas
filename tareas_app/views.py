@@ -207,6 +207,13 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "Tarea enviada a control de calidad.")
             return redirect('detalle_orden_trabajo', tarea.orden.id)
 
+        if accion == 'marcar_pintada' and es_jefe_produccion and tarea.estado == 'lista_para_pintar':
+            tarea.estado = 'lista_para_despachar'
+            tarea.sector = 'despacho'
+            tarea.save()
+            messages.success(request, "Tarea pintada marcada como lista para despachar.")
+            return redirect('detalle_orden_trabajo', tarea.orden.id)
+
         if accion == 'reasignar' and puede_asignar(empleado):
             tipo = request.POST.get('tipo_asignacion')
             if tipo == 'tercerizado':
@@ -241,14 +248,32 @@ def detalle_tarea(request, tarea_id):
                 return redirect('detalle_tarea', tarea.id)
 
         if es_calidad:
-            if accion == 'aceptar':
-                tarea.estado = 'finalizada'
+            if accion == 'aceptar' and tarea.estado == 'en_revision':
+                if tarea.sector == 'armado':
+                    tarea.estado = 'en_proceso'
+                    tarea.sector = 'soldado'
+                elif tarea.sector == 'soldado':
+                    siguiente = request.POST.get('siguiente_estado')
+                    if siguiente in ['lista_para_pintar', 'lista_para_despachar', 'galvanizado']:
+                        tarea.estado = siguiente
+                        if siguiente == 'lista_para_pintar':
+                            tarea.sector = 'pintura'
+                        elif siguiente == 'lista_para_despachar':
+                            tarea.sector = 'despacho'
+                        elif siguiente == 'galvanizado':
+                            tarea.sector = 'galvanizado'
+                elif tarea.sector == 'galvanizado':
+                    tarea.estado = 'lista_para_despachar'
+                    tarea.sector = 'despacho'
                 tarea.save()
                 messages.success(request, "Tarea aceptada correctamente.")
                 return redirect('detalle_orden_trabajo', tarea.orden.id)
 
-            elif accion == 'rechazar':
-                tarea.estado = 'rechazada'
+            elif accion == 'rechazar' and tarea.estado == 'en_revision':
+                if tarea.sector in ['armado', 'soldado']:
+                    tarea.estado = 'en_proceso'
+                elif tarea.sector == 'galvanizado':
+                    tarea.estado = 'galvanizado'
                 tarea.save()
                 messages.success(request, "Tarea rechazada.")
                 return redirect('detalle_orden_trabajo', tarea.orden.id)
@@ -309,7 +334,7 @@ def lista_ordenes_trabajo(request):
     ordenes_con_info = []
     for orden in ordenes:
         total = orden.tareas.count()
-        completadas = orden.tareas.filter(estado='finalizada').count()
+        completadas = orden.tareas.filter(estado='lista_para_despachar').count()
         progreso = int((completadas / total) * 100) if total > 0 else 0
 
         ordenes_con_info.append({
@@ -344,6 +369,9 @@ def detalle_orden_trabajo(request, orden_id):
             agente = get_object_or_404(AgenteExterno, id=agente_id)
             tarea.agente_externo = agente
             tarea.asignado_a = None
+            if tarea.estado == 'pendiente':
+                tarea.estado = 'en_proceso'
+                tarea.sector = 'armado'
             tarea.save()
 
     elif tipo == 'empleado':
@@ -356,6 +384,9 @@ def detalle_orden_trabajo(request, orden_id):
             )
             tarea.asignado_a = operario
             tarea.agente_externo = None
+            if tarea.estado == 'pendiente':
+                tarea.estado = 'en_proceso'
+                tarea.sector = 'armado'
             tarea.save()
         return redirect('detalle_orden_trabajo', orden_id=orden.id)
 
