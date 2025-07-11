@@ -10,7 +10,9 @@ class TareaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Mostrar solo empleados que sean operarios en el campo asignado_a
-        self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario')
+        self.fields['asignado_a'].queryset = Empleado.objects.filter(
+            perfil__in=['armador', 'soldador', 'pintor', 'corte']
+        )
 
 class OrdenDeTrabajoForm(forms.ModelForm):
     class Meta:
@@ -22,20 +24,20 @@ class OrdenDeTrabajoForm(forms.ModelForm):
   #      model = Tarea
    #     fields = ['asignado_a']
 class AsignarOperarioForm(forms.ModelForm):
-    tipo_asignacion = forms.ChoiceField(choices=[('propio', 'Interno'), ('tercerizado', 'Externo')])
+    tipo_asignacion = forms.ChoiceField(
+        choices=[('propio', 'Interno'), ('tercerizado', 'Externo')]
+    )
     asignado_a = forms.ModelChoiceField(queryset=Empleado.objects.none())
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        tipo = self.data.get('tipo_asignacion')
+        tipo = self.data.get('tipo_asignacion') or self.initial.get('tipo_asignacion')
         if tipo == 'tercerizado':
             self.fields['asignado_a'].queryset = Empleado.objects.filter(es_externo=True)
         else:
-            self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario', es_externo=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['asignado_a'].queryset = Empleado.objects.filter(perfil='operario')
+            self.fields['asignado_a'].queryset = Empleado.objects.filter(
+                perfil__in=['armador', 'soldador', 'pintor', 'corte'], es_externo=False
+            )
 
 
 class AgenteExternoForm(forms.ModelForm):
