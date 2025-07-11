@@ -66,40 +66,40 @@
 {% endif %}
             </td>
             {% if puede_asignar %}
-<td>
+            <td>
+            {% if not tarea.asignado_a and not tarea.agente_externo %}
 <form method="post" style="display:inline;">
   {% csrf_token %}
   <input type="hidden" name="tarea_id" value="{{ tarea.id }}">
 
-<!-- SELECT PRINCIPAL -->
-<select name="asignado_id" id="asignado_id{{ tarea.id }}" 
-        class="form-select form-select-sm d-inline w-auto"
-        onchange="checkTercerizado(this, '{{ tarea.id }}')">
-    {% for operario in operarios %}
+  <select name="asignado_id" id="asignado_id{{ tarea.id }}"
+          class="form-select form-select-sm d-inline w-auto"
+          onchange="checkTercerizado(this, '{{ tarea.id }}')">
+      {% for operario in operarios %}
         <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>
-            {{ operario.nombre }} {{ operario.apellido }}
+          {{ operario.nombre_completo }}
         </option>
-    {% endfor %}
-<option disabled>────────</option>
-<option value="tercerizado">Tercerizar</option>
-</select>
+      {% endfor %}
+    <option disabled>────────</option>
+    <option value="tercerizado">Tercerizar</option>
+  </select>
 
-<!-- SELECT AGENTE EXTERNO -->
-<div id="agente_externo_selector{{ tarea.id }}" style="display: none; margin-top: 5px;">
+  <div id="agente_externo_selector{{ tarea.id }}" style="display: none; margin-top: 5px;">
     <select name="agente_externo_id" class="form-select-sm d-inline w-auto">
-        {% for agente in agentes_externos %}
-            <option value="{{ agente.id }}">{{ agente.nombre }}</option>
-        {% endfor %}
+      {% for agente in agentes_externos %}
+        <option value="{{ agente.id }}">{{ agente.nombre }}</option>
+      {% endfor %}
     </select>
-</div>
+  </div>
 
-<!-- CAMPO OCULTO -->
-<input type="hidden" name="tipo_asignacion" id="tipo_asignacion_input{{ tarea.id }}" value="empleado">
+  <input type="hidden" name="tipo_asignacion" id="tipo_asignacion_input{{ tarea.id }}" value="empleado">
 
   <button type="submit" class="btn btn-sm btn-success">Asignar</button>
 </form>
+            {% else %}
+              <span class="text-muted">Asignada</span>
+            {% endif %}
 
-</td>
             </td>
             {% endif %}
             {% if perfil_usuario == 'ingenieria' or perfil_usuario == 'administrador' %}
