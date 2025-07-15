@@ -25,9 +25,22 @@ ESTADOS = (
         ('pendiente', 'Pendiente'),
         ('en_progreso', 'En progreso'),
         ('en_revision', 'En revision'),
+        ('lista_para_pintar', 'Lista para pintar'),
+        ('lista_para_despachar', 'Lista para despachar'),
         ('finalizada', 'Finalizada'),
-        ('rechazada', 'Rechazada'),
+        ('rechazada', 'Rechazada'), 
     )
+
+SECTOR = (
+        ('armado', 'Armado'),
+        ('control_1', 'Control 1'),
+        ('soldado', 'Soldado'),
+        ('control_2', 'Control 2'),
+        ('pintado', 'Pintado'),
+        ('despachar', 'Despachar'),
+        ('galvanizado', 'Galvanizado'),
+        
+)
 
 # MODELOS
 
@@ -79,6 +92,7 @@ class OrdenDeTrabajo(models.Model):
 
 class Tarea(models.Model):
     titulo = models.CharField(max_length=100)
+    sector = models.CharField(max_length=20, choices=SECTOR, blank=True, null=True)
     descripcion = models.TextField()
     asignado_a = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, blank=True, related_name="tareas_asignadas")
     creada_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)
@@ -112,6 +126,8 @@ class Tarea(models.Model):
                     self.generar_pdf()
 
         super().save(*args, **kwargs)
+
+
     def generar_pdf(self):
      carpeta = os.path.join(settings.MEDIA_ROOT, 'reportes')
      os.makedirs(carpeta, exist_ok=True)
@@ -126,8 +142,6 @@ class Tarea(models.Model):
      c.drawString(100, y, f"Descripción: {self.descripcion}")
      y -= 20
      c.drawString(100, y, f"Asignado a: {self.asignado_a}")
-     y -= 20
-     c.drawString(100, y, f"Creada por: {self.creada_por}")
      y -= 20
      c.drawString(100, y, f"Fecha creación: {self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
      y -= 20
@@ -177,6 +191,80 @@ class Tarea(models.Model):
             c.drawString(100, 780, f"Error al cargar plano: {e}")
 
      c.save()
+
+
+def avanzar_tarea(tarea, accion, empleado, destino_final=None):
+    # Etapa 1 → Asignación de Armador
+    if tarea.estado == 'pendiente' and accion == 'asignar_armador':
+        tarea.estado = 'en_progreso'
+        tarea.sector = 'armado'
+
+    # Etapa 1 finalizada → Enviar a CONTROL 1
+    elif tarea.estado == 'en_progreso' and tarea.sector == 'armado' and accion == 'enviar_a_calidad':
+        tarea.estado = 'en_revision'
+        tarea.sector = 'control_1'
+
+    # Etapa 2 → CONTROL 1 aprueba
+    elif tarea.estado == 'en_revision' and tarea.sector == 'control_1' and accion == 'aprobado_por_calidad':
+        tarea.estado = 'pendiente'
+        tarea.sector = 'soldado'
+
+    # Etapa 2 → CONTROL 1 rechaza
+    elif tarea.estado == 'en_revision' and tarea.sector == 'control_1' and accion == 'rechazado_por_calidad':
+        tarea.estado = 'pendiente'
+        tarea.sector = 'armado'
+
+    # Etapa 3 → SOLDADO inicia trabajo
+    elif tarea.estado == 'pendiente' and tarea.sector == 'soldado' and accion == 'asignar_soldador':
+        tarea.estado = 'en_progreso'
+
+    # Etapa 3 finalizada → Enviar a CONTROL 2
+    elif tarea.estado == 'en_progreso' and tarea.sector == 'soldado' and accion == 'enviar_a_calidad':
+        tarea.estado = 'en_revision'
+        tarea.sector = 'control_2'
+
+    # Etapa 4 → CONTROL 2 aprueba y envía a destino
+    elif tarea.estado == 'en_revision' and tarea.sector == 'control_2' and accion == 'segunda_aprobacion':
+        if destino_final == 'pintado':
+            tarea.estado = 'lista_para_pintar'
+            tarea.sector = 'pintado'
+        elif destino_final == 'despachar':
+            tarea.estado = 'lista_para_despachar'
+            tarea.sector = 'despachar'
+        elif destino_final == 'galvanizado':
+            tarea.estado = 'galvanizado'
+            tarea.sector = 'galvanizado'
+
+    # Etapa post-galvanizado → vuelve a control
+    elif tarea.estado == 'galvanizado':
+        tarea.estado = 'en_revision'
+        tarea.sector = 'control_2'
+
+    # Etapa 4 → CONTROL 2 rechaza
+    elif tarea.estado == 'en_revision' and tarea.sector == 'control_2' and accion == 'rechazado_por_calidad':
+        tarea.estado = 'pendiente'
+        tarea.sector = 'soldado'
+
+    # Etapa 5 → PINTADO finalizado
+    elif tarea.estado == 'lista_para_pintar' and tarea.sector == 'pintado' and accion == 'pintado_finalizado':
+        tarea.estado = 'lista_para_despachar'
+        tarea.sector = 'despachar'
+
+    # Etapa 6 → DESPACHO finaliza tarea
+    elif tarea.estado == 'lista_para_despachar' and tarea.sector == 'despachar' and accion == 'marcar_finalizada':
+        tarea.estado = 'finalizada'
+
+
+    tarea.save()
+
+    def tarea_destino_final(tarea):
+        destino = tarea.destino_final  # este valor debería llegar del formulario
+        if destino == 'pintado':
+            return {'estado': 'lista_para_pintar', 'sector': 'pintado'}
+        elif destino == 'despacho':
+            return {'estado': 'lista_para_despachar', 'sector': 'despacho'}
+        elif destino == 'galvanizado':
+            return {'estado': 'galvanizado', 'sector': 'galvanizado'}
 
 
 

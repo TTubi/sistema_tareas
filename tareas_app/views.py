@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario, PERFILES, avanzar_tarea
 from django.contrib.auth.models import User
 from .forms import (
     TareaForm,
@@ -43,9 +43,125 @@ def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
 
 @login_required
-def lista_usuarios(request):
-    usuarios = User.objects.all().order_by('last_name', 'first_name')
-    return render(request, 'usuarios/lista_usuarios.html', {'usuarios': usuarios})
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['administrador', 'rrhh'])
+def lista_usuarios_completa(request):
+    # Personal de taller
+    perfiles_taller = ['soldador', 'armador', 'calidad', 'despacho', 'produccion']
+    usuarios_taller = Empleado.objects.filter(perfil__in=perfiles_taller, es_externo=False)
+
+    # Mensuales
+    perfiles_mensuales = ['ppc', 'rrhh', 'ingenieria', 'administrador']
+    usuarios_mensuales = Empleado.objects.filter(perfil__in=perfiles_mensuales, es_externo=False)
+
+    # Agentes externos
+    agentes_externos = AgenteExterno.objects.all()
+
+    context = {
+        'usuarios_taller': usuarios_taller,
+        'usuarios_mensuales': usuarios_mensuales,
+        'agentes_externos': agentes_externos,
+    }
+
+    return render(request, 'usuarios/lista_usuarios_completa.html', context)
+
+
+def editar_usuario(request, usuario_id):
+    usuario = get_object_or_404(User, id=usuario_id)
+
+    if request.method == 'POST':
+        usuario.first_name = request.POST['first_name']
+        usuario.last_name = request.POST['last_name']
+        usuario.email = request.POST['email']
+        usuario.save()
+
+        usuario.empleado.perfil = request.POST['perfil']
+        usuario.empleado.save()
+
+        messages.success(request, 'Usuario actualizado correctamente.')
+        return redirect('lista_usuarios')
+    
+        if request.method == 'POST':
+            user.username = request.POST.get('username') if perfil not in ['Soldador', 'Armador'] else user.username
+    
+            password = request.POST.get('password')
+        if password and perfil not in ['Soldador', 'Armador']:
+            user.set_password(password)
+
+    # ... actualizás otros campos ...
+            user.save()
+
+    return render(request, 'usuarios/editar_usuario.html', {
+        'usuario': usuario,
+        'perfiles': PERFILES
+    })
+
+def eliminar_usuario(request, usuario_id):
+    usuario = get_object_or_404(User, id=usuario_id)
+
+    if request.method == 'POST':
+        usuario.delete()
+        messages.success(request, 'Usuario eliminado correctamente.')
+        return redirect('lista_usuarios')  # Asegurate que esta URL exista
+
+    return render(request, 'usuarios/eliminar_usuario.html', {
+        'usuario': usuario
+    })
+
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
+def editar_personal_taller(request, id):
+    personal = get_object_or_404(Empleado, id=id)
+
+    if request.method == 'POST':
+        personal.nombre = request.POST.get('nombre')
+        personal.perfil = request.POST.get('perfil')
+        personal.save()
+        messages.success(request, "Personal actualizado correctamente.")
+        return redirect('lista_usuarios')
+
+    return render(request, 'usuarios/editar_personal_taller.html', {'personal': personal})
+
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
+def eliminar_personal_taller(request, id):
+    personal = get_object_or_404(Empleado, id=id)
+
+    if request.method == 'POST':
+        personal.delete()
+        messages.success(request, "Personal eliminado correctamente.")
+        return redirect('lista_usuarios')
+
+    return render(request, 'usuarios/eliminar_personal_taller.html', {'personal': personal})
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
+def editar_agente_externo(request, id):
+    agente = get_object_or_404(AgenteExterno, id=id)
+
+    if request.method == 'POST':
+        agente.nombre = request.POST.get('nombre')
+        agente.email = request.POST.get('email')
+        agente.empresa = request.POST.get('empresa')
+        agente.save()
+        messages.success(request, "Agente externo actualizado correctamente.")
+        return redirect('lista_usuarios')
+
+    return render(request, 'usuarios/editar_agente_externo.html', {'agente': agente})
+
+
+@login_required
+@user_passes_test(lambda u: hasattr(u, 'empleado') and u.empleado.perfil in ['rrhh', 'administrador'])
+def eliminar_agente_externo(request, id):
+    agente = get_object_or_404(AgenteExterno, id=id)
+
+    if request.method == 'POST':
+        agente.delete()
+        messages.success(request, "Agente externo eliminado correctamente.")
+        return redirect('lista_usuarios')
+
+    return render(request, 'usuarios/eliminar_agente_externo.html', {'agente': agente})
 
 # Inicio
 @login_required
@@ -77,6 +193,7 @@ def inicio(request):
         accesos.append(('Crear orden de trabajo', 'crear_orden_trabajo'))
         accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
         accesos.append(('Registrar Personal de Taller', 'personal_de_taller'))
+        accesos.append(('Lista de personal', 'lista_usuarios'))
 
     # Despacho
     if empleado.perfil == 'despacho':
@@ -194,19 +311,16 @@ def detalle_tarea(request, tarea_id):
     es_calidad = empleado.perfil == 'calidad'
     es_jefe_produccion = empleado.perfil == 'produccion'
     puede_ver = empleado.perfil in ['administrador', 'produccion', 'ppc', 'ingenieria', 'calidad', 'despacho']
+    puede_comentar = empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador']
 
     if not puede_ver:
         return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
 
     if request.method == 'POST':
         accion = request.POST.get('accion')
+        destino_final = request.POST.get('destino_final')  # puede ser None
 
-        if accion == 'enviar_revision' and es_jefe_produccion:
-            tarea.estado = 'en_revision'
-            tarea.save()
-            messages.success(request, "Tarea enviada a control de calidad.")
-            return redirect('detalle_orden_trabajo', tarea.orden.id)
-
+        # Reasignación
         if accion == 'reasignar' and puede_asignar(empleado):
             tipo = request.POST.get('tipo_asignacion')
             if tipo == 'tercerizado':
@@ -230,7 +344,8 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "Tarea reasignada correctamente.")
             return redirect('detalle_tarea', tarea.id)
 
-        if accion == 'agregar_comentario' and empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador']:
+        # Comentario
+        if accion == 'agregar_comentario' and puede_comentar:
             form = ComentarioForm(request.POST, request.FILES)
             if form.is_valid():
                 comentario = form.save(commit=False)
@@ -240,18 +355,44 @@ def detalle_tarea(request, tarea_id):
                 messages.success(request, "Comentario agregado.")
                 return redirect('detalle_tarea', tarea.id)
 
-        if es_calidad:
-            if accion == 'aceptar':
-                tarea.estado = 'finalizada'
-                tarea.save()
-                messages.success(request, "Tarea aceptada correctamente.")
-                return redirect('detalle_orden_trabajo', tarea.orden.id)
+        # Producción: enviar a control de calidad
+        if accion == 'enviar_revision' and es_jefe_produccion:
+            tarea.estado = 'en_revision'
+            tarea.sector = 'control'
+            tarea.save()
+            messages.success(request, "Tarea enviada a control de calidad.")
+            return redirect('detalle_orden_trabajo', tarea.orden.id)
 
-            elif accion == 'rechazar':
+        # Calidad: aceptar o rechazar
+        if es_calidad and accion == 'aceptar':
+            if tarea.sector == 'control_1':
+                tarea.estado = 'pendiente'
+                tarea.sector = 'soldado'
+                tarea.save()
+                messages.success(request, "Tarea aprobada. Ahora debe ser asignada a soldador.")
+                return redirect('detalle_tarea', tarea.id)
+            elif tarea.sector == 'control_2':
+                messages.success(request, "Tarea aprobada. Producción debe elegir destino final.")
+                return redirect('detalle_tarea', tarea.id)
+            else:
+                messages.warning(request, "No se reconoce esta etapa para validación.")
+        elif accion == 'rechazar':
                 tarea.estado = 'rechazada'
                 tarea.save()
                 messages.success(request, "Tarea rechazada.")
                 return redirect('detalle_orden_trabajo', tarea.orden.id)
+        
+        if accion == 'enviar_a_despacho' and es_calidad:
+            tarea.estado = 'lista_para_despachar'
+            tarea.sector = 'despachar'
+            tarea.save()
+            messages.success(request, "La tarea fue enviada al sector Despacho.")
+            return redirect('detalle_tarea', tarea.id)
+
+        # NUEVO FLUJO: avanzar por lógica general
+        avanzar_tarea(tarea, accion, empleado, destino_final)
+        messages.success(request, "La tarea fue actualizada.")
+        return redirect('detalle_tarea', tarea.id)
 
     context = {
         'tarea': tarea,
@@ -259,8 +400,10 @@ def detalle_tarea(request, tarea_id):
         'es_jefe_produccion': es_jefe_produccion,
         'comentarios': tarea.comentarios.select_related('autor').order_by('fecha_creacion'),
         'comentario_form': ComentarioForm(),
-        'puede_comentar': empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador'],
+        'puede_comentar': puede_comentar,
+        'perfil_usuario': empleado.perfil,
     }
+
     if puede_asignar(empleado):
         context.update({
             'operarios': Empleado.objects.filter(perfil__in=['armador', 'soldador']),
@@ -305,6 +448,11 @@ def lista_ordenes_trabajo(request):
         ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='en_revision').distinct()
     else:
         ordenes = OrdenDeTrabajo.objects.all()
+
+    if empleado.perfil == 'despacho':
+        tareas = Tarea.objects.filter(estado='lista_para_despachar', sector='despachar')
+    else:
+        tareas = Tarea.objects.all()       
 
     ordenes_con_info = []
     for orden in ordenes:
@@ -489,13 +637,9 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
         denominacion = row['DENOMINACIÓN']
         estructura = row['ID. ESTRUCT.']
         
-        if pd.isna(plano) or str(plano).strip() == '':
-            print("⚠️ Fila ignorada por plano vacío.")
-        continue
-
-        if pd.isna(estructura) or pd.isna(denominacion):
-            print("⚠️ Fila ignorada por falta de datos esenciales.")
-        continue  # Salta esta fila
+        if pd.isna(plano) or plano == "":
+            print("⚠️Fila ignorada por plano vacío.")
+            continue
 
         Tarea.objects.create(
             titulo=f"{plano} - {denominacion}",

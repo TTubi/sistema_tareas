@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import lista_usuarios
+from .views import lista_usuarios_completa
 
 urlpatterns = [
     path('<int:tarea_id>/', views.detalle_tarea, name='detalle_tarea'),
@@ -15,5 +15,11 @@ urlpatterns = [
     path('asignar_agente_externo/', views.asignar_a_agente_externo, name='asignar_a_agente_externo'),
     path('inicio/', views.inicio, name='inicio'),
     path('personal-de-taller/', views.personal_de_taller, name='personal_de_taller'),
-    path('usuarios/', lista_usuarios, name='lista_usuarios'),
+    path('usuarios/<int:usuario_id>/editar/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/<int:usuario_id>/eliminar/', views.eliminar_usuario, name='eliminar_usuario'),
+    path('usuarios/', views.lista_usuarios_completa, name='lista_usuarios'),
+    path('personal-taller/<int:id>/editar/', views.editar_personal_taller, name='editar_personal_taller'),
+    path('personal-taller/<int:id>/eliminar/', views.eliminar_personal_taller, name='eliminar_personal_taller'),
+    path('externos/<int:id>/editar/', views.editar_agente_externo, name='editar_agente_externo'),
+    path('externos/<int:id>/eliminar/', views.eliminar_agente_externo, name='eliminar_agente_externo'),
 ]

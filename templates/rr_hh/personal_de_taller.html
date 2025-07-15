@@ -26,12 +26,4 @@
     <button type="submit" class="btn btn-primary">Registrar</button>
 </form>
 
-{% if messages %}
-<hr>
-<ul class="list-unstyled mt-3">
-  {% for message in messages %}
-    <li class="alert alert-{{ message.tags }}">{{ message }}</li>
-  {% endfor %}
-</ul>
-{% endif %}
 {% endblock %}

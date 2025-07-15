@@ -15,7 +15,6 @@
                     <span class="text-muted">Sin asignar</span>
                 {% endif %}
             </p>
-            <p class="card-text"><strong>Creado por:</strong> {{ tarea.creada_por }}</p>
             <p class="card-text"><strong>Estado actual:</strong> 
                 <span class="badge bg-primary">{{ tarea.estado }}</span>
             </p>
@@ -31,74 +30,99 @@
                 <p class="card-text"><strong>Plano adjunto:</strong></p>
                 <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
             {% endif %}
-            {% if es_jefe_produccion and tarea.estado == 'pendiente' %}
-  <form method="post" class="mb-3">
+
+            <!-- Botones adicionales de flujo -->
+             {% if puede_asignar %}
+<form method="post" class="mt-3">
     {% csrf_token %}
-    <button name="accion" value="enviar_revision" class="btn btn-primary">
-      Enviar a Control de Calidad
-    </button>
-  </form>
+    <input type="hidden" name="accion" value="reasignar">
+    <select name="asignado_id" class="form-select form-select-sm d-inline w-auto" onchange="detCheckTercerizado(this)">
+        {% for operario in operarios %}
+            <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>{{ operario.nombre_completo }}</option>
+        {% endfor %}
+        <option disabled>────────</option>
+        <option value="tercerizado">Tercerizar</option>
+    </select>
+    <div id="detalle_externo_selector" style="display:none; margin-top:5px;">
+        <select name="agente_externo_id" class="form-select-sm d-inline w-auto">
+            {% for agente in agentes_externos %}
+                <option value="{{ agente.id }}" {% if tarea.agente_externo == agente %}selected{% endif %}>{{ agente.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <input type="hidden" id="detalle_tipo_asignacion" name="tipo_asignacion" value="empleado">
+    <button type="submit" class="btn btn-sm btn-primary mt-2">Reasignar</button>
+</form>
 {% endif %}
-     
-
-            {% if es_calidad %}
-            <form method="post" class="d-flex gap-2 mt-3">
+             {% if es_calidad and tarea.estado == 'galvanizado' %}
+                <form method="post" class="mt-3">
                 {% csrf_token %}
-                <button type="submit" name="accion" value="aceptar" class="btn btn-success">✅ Aceptar</button>
-                <button type="submit" name="accion" value="rechazar" class="btn btn-danger">❌ Rechazar</button>
-            </form>
+                <button name="accion" value="enviar_a_despacho" class="btn btn-primary">📦 Enviar a Despacho</button>
+                </form>
+            {% endif %}
+            {% if tarea.estado == 'pendiente' and puede_asignar %}
+              <form method="post" class="mb-2">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="asignar_armador" class="btn btn-warning">Asignar Armador</button>
+              </form>
             {% endif %}
 
-            {% if puede_asignar %}
-            <form method="post" class="mt-3">
+            {% if tarea.estado == 'en_progreso' and tarea.sector == 'armado' and es_jefe_produccion %}
+              <form method="post" class="mb-2">
                 {% csrf_token %}
-                <input type="hidden" name="accion" value="reasignar">
-                <select name="asignado_id" class="form-select form-select-sm d-inline w-auto" onchange="detCheckTercerizado(this)">
-                    {% for operario in operarios %}
-                        <option value="{{ operario.id }}" {% if tarea.asignado_a == operario %}selected{% endif %}>{{ operario.nombre_completo }}</option>
-                    {% endfor %}
-                    <option disabled>────────</option>
-                    <option value="tercerizado">Tercerizar</option>
+                <button type="submit" name="accion" value="enviar_a_calidad" class="btn btn-primary">Enviar a Control 1</button>
+              </form>
+            {% endif %}
+
+            {% if tarea.estado == 'en_revision' and tarea.sector == 'control_1' and es_calidad %}
+              <form method="post" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="aprobado_por_calidad" class="btn btn-success">Aprobar</button>
+                <button type="submit" name="accion" value="rechazado_por_calidad" class="btn btn-danger">Rechazar</button>
+              </form>
+            {% endif %}
+
+            {% if tarea.estado == 'pendiente' and tarea.sector == 'soldado' and puede_asignar %}
+              <form method="post" class="mb-2">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="asignar_soldador" class="btn btn-warning">Asignar Soldador</button>
+              </form>
+            {% endif %}
+
+            {% if tarea.estado == 'en_progreso' and tarea.sector == 'soldado' and es_jefe_produccion %}
+              <form method="post" class="mb-2">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="enviar_a_calidad" class="btn btn-primary">Enviar a Control 2</button>
+              </form>
+            {% endif %}
+
+            {% if tarea.estado == 'en_revision' and tarea.sector == 'control_2' and es_calidad %}
+              <form method="post" class="mt-4">
+                {% csrf_token %}
+                <label for="destino_final" class="form-label">Destino final</label>
+                <select class="form-select mb-2" name="destino_final" required>
+                    <option value="" disabled selected>Elegir destino</option>
+                    <option value="pintado">Pintado</option>
+                    <option value="galvanizado">Galvanizado</option>
+                    <option value="despachar">Despacho</option>
                 </select>
-                <div id="detalle_externo_selector" style="display:none; margin-top:5px;">
-                    <select name="agente_externo_id" class="form-select-sm d-inline w-auto">
-                        {% for agente in agentes_externos %}
-                            <option value="{{ agente.id }}" {% if tarea.agente_externo == agente %}selected{% endif %}>{{ agente.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <input type="hidden" id="detalle_tipo_asignacion" name="tipo_asignacion" value="empleado">
-                <button type="submit" class="btn btn-sm btn-primary mt-2">Reasignar</button>
-            </form>
-            <script>
-            function detCheckTercerizado(sel){
-                const tipo = document.getElementById('detalle_tipo_asignacion');
-                const ext = document.getElementById('detalle_externo_selector');
-                if(sel.value === 'tercerizado'){
-                    tipo.value = 'tercerizado';
-                    ext.style.display = 'inline-block';
-                } else {
-                    tipo.value = 'empleado';
-                    ext.style.display = 'none';
-                }
-            }
-            </script>
+                <button type="submit" name="accion" value="segunda_aprobacion" class="btn btn-success">Aprobar y enviar</button>
+                <button type="submit" name="accion" value="rechazado_por_calidad" class="btn btn-danger">Rechazar</button>
+              </form>
             {% endif %}
 
-            {% if comentarios %}
-            <h5 class="mt-4">Comentarios</h5>
-            <ul class="list-group mb-3">
-                {% for c in comentarios %}
-                <li class="list-group-item">
-                    <strong>{{ c.autor.nombre_completo|default:"Anonimo" }}</strong>
-                    <span class="text-muted small">{{ c.fecha_creacion|date:"Y-m-d H:i" }}</span>
-                    <p class="mb-1">{{ c.texto }}</p>
-                    {% if c.imagen %}
-                        <img src="{{ c.imagen.url }}" class="img-fluid mt-2" />
-                    {% endif %}
-                </li>
-                {% endfor %}
-            </ul>
+            {% if tarea.estado == 'lista_para_pintar' and tarea.sector == 'pintado' and es_jefe_produccion %}
+              <form method="post" class="mb-2">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="pintado_finalizado" class="btn btn-info">Marcar como Pintado</button>
+              </form>
+            {% endif %}
+
+            {% if tarea.estado == 'lista_para_despachar' and tarea.sector == 'despachar' and perfil_usuario == 'despacho' %}
+              <form method="post" class="mb-2">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="marcar_finalizada" class="btn btn-success">Finalizar tarea</button>
+              </form>
             {% endif %}
 
             {% if puede_comentar %}
@@ -115,4 +139,5 @@
     </div>
 </div>
 {% endblock %}
+
 

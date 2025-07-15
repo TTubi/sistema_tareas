@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Editar Usuario{% endblock %}
+
+{% block content %}
+<h2>Editar Usuario</h2>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label>Nombre</label>
+        <input type="text" name="first_name" value="{{ usuario.first_name }}" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label>Apellido</label>
+        <input type="text" name="last_name" value="{{ usuario.last_name }}" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label>Email</label>
+        <input type="email" name="email" value="{{ usuario.email }}" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label>Perfil</label>
+        <select name="perfil" class="form-select" required>
+            <option value="">Seleccionar</option>
+            {% for key, label in perfiles %}
+                <option value="{{ key }}" {% if usuario.empleado.perfil == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <!-- Campo Username -->
+{% if user.perfil != 'Soldador' and user.perfil != 'Armador' %}
+  <div class="form-group">
+    <label for="username">Nombre de usuario</label>
+    <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+  </div>
+
+  <!-- Campo Password -->
+  <div class="form-group">
+    <label for="password">Contraseña</label>
+    <input type="password" class="form-control" id="password" name="password">
+    <small class="form-text text-muted">Dejar en blanco si no se desea cambiar.</small>
+  </div>
+{% endif %}
+    <button type="submit" class="btn btn-success">Guardar cambios</button>
+    <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

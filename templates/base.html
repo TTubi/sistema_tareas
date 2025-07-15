@@ -15,7 +15,6 @@
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
                         {% if user.empleado.perfil == 'ppc' %}
-                            <!-- PPC solo ve las OT -->
                         {% elif user.empleado.perfil == 'calidad' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'lista_ordenes_trabajo' %}">Tareas a Controlar</a></li>
                         {% endif %}
@@ -34,6 +33,13 @@
     </nav>
 
     <div class="container">
+            {% if messages %}
+      <div class="mt-2">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
         {% block content %}{% endblock %}
     </div>
 </body>
