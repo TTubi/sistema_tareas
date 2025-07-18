@@ -16,23 +16,4 @@
       </div>
     {% endfor %}
   </div>
-</div>
-    <div class="row justify-content-center mt-4">
-        {% if perfil == 'ppc' %}
-            <div class="col-md-4">
-                <a href="{% url 'ver_ordenes_trabajo' %}" class="btn btn-primary w-100 mb-3">Órdenes de Trabajo</a>
-            </div>
-        {% endif %}
-        {% if perfil == 'rr_hh' %}
-            <div class="col-md-4">
-                <a href="{% url 'gestionar_externos' %}" class="btn btn-secondary w-100 mb-3">Gestión de Agentes Externos</a>
-            </div>
-        {% endif %}
-        {% if perfil == 'admin' %}
-            <div class="col-md-4">
-                <a href="{% url 'admin:index' %}" class="btn btn-dark w-100 mb-3">Admin Django</a>
-            </div>
-        {% endif %}
-    </div>
-</div>
 {% endblock %}

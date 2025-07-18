@@ -16,6 +16,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import logout
 from django.core.paginator import Paginator
 from django.contrib import messages
+from django.contrib.auth.views import LoginView
 import pandas as pd
 import numpy as np
 
@@ -37,7 +38,21 @@ def es_operario(empleado):
 def es_rrhh(empleado):
     return empleado.perfil in ['rrhh']
 
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'  # o donde esté tu login.html
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        remember_me = self.request.POST.get('recordarme')
+
+        if not remember_me:
+            # Cierra sesión al cerrar el navegador
+            self.request.session.set_expiry(0)
+        else:
+            # Sesión persiste 30 días
+            self.request.session.set_expiry(60 * 60 * 24 * 30)
+
+        return response
 @login_required
 def redirect_por_perfil(request):
     return redirect('lista_ordenes_trabajo')
@@ -194,6 +209,7 @@ def inicio(request):
         accesos.append(('Ver ordenes', 'lista_ordenes_trabajo'))
         accesos.append(('Registrar Personal de Taller', 'personal_de_taller'))
         accesos.append(('Lista de personal', 'lista_usuarios'))
+        #accesos.append(('admin:index', 'admin:index'))
 
     # Despacho
     if empleado.perfil == 'despacho':
@@ -450,7 +466,7 @@ def lista_ordenes_trabajo(request):
         ordenes = OrdenDeTrabajo.objects.all()
 
     if empleado.perfil == 'despacho':
-        tareas = Tarea.objects.filter(estado='lista_para_despachar', sector='despachar')
+        ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='lista_para_despachar').distinct()
     else:
         tareas = Tarea.objects.all()       
 
@@ -510,6 +526,9 @@ def detalle_orden_trabajo(request, orden_id):
     tareas = orden.tareas.all()
     if empleado.perfil == 'calidad':
         tareas = tareas.filter(estado='en_revision')
+
+    if empleado.perfil == 'despacho':
+        tareas = tareas.filter(estado='lista_para_despachar')
 
     busqueda = request.GET.get('q', '')
     if busqueda:

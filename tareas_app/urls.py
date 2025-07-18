@@ -1,8 +1,10 @@
 from django.urls import path
 from . import views
-from .views import lista_usuarios_completa
+from .views import lista_usuarios_completa, CustomLoginView
+
 
 urlpatterns = [
+    path('login/', CustomLoginView.as_view(), name='login'),
     path('<int:tarea_id>/', views.detalle_tarea, name='detalle_tarea'),
     path('ordenes/', views.lista_ordenes_trabajo, name='lista_ordenes_trabajo'),
     path('ordenes/crear/', views.crear_orden_trabajo, name='crear_orden_trabajo'),
@@ -20,6 +22,7 @@ urlpatterns = [
     path('usuarios/', views.lista_usuarios_completa, name='lista_usuarios'),
     path('personal-taller/<int:id>/editar/', views.editar_personal_taller, name='editar_personal_taller'),
     path('personal-taller/<int:id>/eliminar/', views.eliminar_personal_taller, name='eliminar_personal_taller'),
+    path('rrhh/externos/', views.gestionar_externos, name='externos'),
     path('externos/<int:id>/editar/', views.editar_agente_externo, name='editar_agente_externo'),
     path('externos/<int:id>/eliminar/', views.eliminar_agente_externo, name='eliminar_agente_externo'),
 ]
