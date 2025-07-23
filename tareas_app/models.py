@@ -32,6 +32,7 @@ ESTADOS = (
     )
 
 SECTOR = (
+        ('pendiente','Pendiente'),
         ('armado', 'Armado'),
         ('control_1', 'Control 1'),
         ('soldado', 'Soldado'),
@@ -41,6 +42,7 @@ SECTOR = (
         ('galvanizado', 'Galvanizado'),
         
 )
+
 
 # MODELOS
 
@@ -80,6 +82,7 @@ class OrdenDeTrabajo(models.Model):
     archivo_excel = models.FileField(upload_to='ordenes_excel/', blank=True, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     creada_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)
+    finalizada = models.BooleanField(default=False)
 
     def __str__(self):
             return f"OT {self.id} - {self.nombre}"
@@ -92,7 +95,7 @@ class OrdenDeTrabajo(models.Model):
 
 class Tarea(models.Model):
     titulo = models.CharField(max_length=100)
-    sector = models.CharField(max_length=20, choices=SECTOR, blank=True, null=True)
+    sector = models.CharField(max_length=30, choices=SECTOR, default='pendiente')
     descripcion = models.TextField()
     asignado_a = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, blank=True, related_name="tareas_asignadas")
     creada_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)

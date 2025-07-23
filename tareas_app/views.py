@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario, PERFILES, avanzar_tarea
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario, PERFILES, avanzar_tarea, ESTADOS
 from django.contrib.auth.models import User
 from .forms import (
     TareaForm,
@@ -38,8 +38,11 @@ def es_operario(empleado):
 def es_rrhh(empleado):
     return empleado.perfil in ['rrhh']
 
+def es_admin_o_ingenieria(empleado):
+    return hasattr(empleado, 'empleado') and empleado.empleado.perfil in ['ingenieria', 'administrador']
+
 class CustomLoginView(LoginView):
-    template_name = 'registration/login.html'  # o donde esté tu login.html
+    template_name = 'login.html'  
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -323,7 +326,7 @@ def asignar_a_agente_externo(request):
 def detalle_tarea(request, tarea_id):
     tarea = get_object_or_404(Tarea, id=tarea_id)
     empleado = Empleado.objects.get(usuario=request.user)
-
+    porcentaje, sector_legible = calcular_progreso_por_sector(tarea.sector, tarea.estado)
     es_calidad = empleado.perfil == 'calidad'
     es_jefe_produccion = empleado.perfil == 'produccion'
     puede_ver = empleado.perfil in ['administrador', 'produccion', 'ppc', 'ingenieria', 'calidad', 'despacho']
@@ -358,6 +361,30 @@ def detalle_tarea(request, tarea_id):
                     tarea.agente_externo = None
                     tarea.save()
             messages.success(request, "Tarea reasignada correctamente.")
+            return redirect('detalle_tarea', tarea.id)
+        
+        if accion == 'cambiar_sector' and es_jefe_produccion:
+            nuevo_sector = request.POST.get('nuevo_sector')
+
+            if nuevo_sector:
+                tarea.sector = nuevo_sector
+
+            # Actualizar el estado automáticamente según el sector
+                if nuevo_sector in ['armado', 'soldado']:
+                    tarea.estado = 'en_progreso'
+                elif nuevo_sector in ['control_1', 'control_2']:
+                    tarea.estado = 'en_revision'
+                elif nuevo_sector == 'pintado':
+                    tarea.estado = 'lista_para_pintar'
+                elif nuevo_sector == 'despachar':
+                    tarea.estado = 'lista_para_despachar'
+                elif nuevo_sector == 'galvanizado':
+                    tarea.estado = 'galvanizado'
+                elif nuevo_sector == 'pendiente':
+                    tarea.estado = 'pendiente'
+
+            tarea.save()
+            messages.success(request, 'El sector y estado fueron actualizados correctamente.')
             return redirect('detalle_tarea', tarea.id)
 
         # Comentario
@@ -405,7 +432,6 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "La tarea fue enviada al sector Despacho.")
             return redirect('detalle_tarea', tarea.id)
 
-        # NUEVO FLUJO: avanzar por lógica general
         avanzar_tarea(tarea, accion, empleado, destino_final)
         messages.success(request, "La tarea fue actualizada.")
         return redirect('detalle_tarea', tarea.id)
@@ -418,6 +444,8 @@ def detalle_tarea(request, tarea_id):
         'comentario_form': ComentarioForm(),
         'puede_comentar': puede_comentar,
         'perfil_usuario': empleado.perfil,
+        'porcentaje': porcentaje,
+        'sector_legible': sector_legible,
     }
 
     if puede_asignar(empleado):
@@ -429,6 +457,30 @@ def detalle_tarea(request, tarea_id):
 
     return render(request, 'tareas/detalle_tarea.html', context)
 
+
+@user_passes_test(es_admin_o_ingenieria)
+def editar_tarea(request, tarea_id):
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    
+    if request.method == "POST":
+        form = TareaForm(request.POST, instance=tarea)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tarea modificada correctamente.")
+            return redirect('detalle_tarea', tarea_id=tarea.id)
+    else:
+        form = TareaForm(instance=tarea)
+    del form.fields['orden']
+    es_ingenieria = request.user.empleado.perfil == 'ingenieria'
+    if es_ingenieria:
+        del form.fields['estado']
+        del form.fields['sector']
+        del form.fields['asignado_a']
+        del form.fields['agente_externo']
+
+        
+    
+    return render(request, 'tareas/editar_tarea.html', {'form': form, 'tarea': tarea})
 
 @login_required
 def crear_orden_trabajo(request):
@@ -453,35 +505,60 @@ def crear_orden_trabajo(request):
 
     return render(request, 'tareas/crear_orden_trabajo.html', {'form': form})
 
-@login_required
 def lista_ordenes_trabajo(request):
     empleado = Empleado.objects.get(usuario=request.user)
 
     if not puede_ver_avances(empleado):
         return HttpResponseForbidden("No tenés permiso para ver las órdenes de trabajo.")
 
+    # 🔎 Filtrado de órdenes según perfil
     if empleado.perfil == 'calidad':
         ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='en_revision').distinct()
+    elif empleado.perfil == 'despacho':
+        ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='lista_para_despachar').distinct()
     else:
         ordenes = OrdenDeTrabajo.objects.all()
 
-    if empleado.perfil == 'despacho':
-        ordenes = OrdenDeTrabajo.objects.filter(tareas__estado='lista_para_despachar').distinct()
-    else:
-        tareas = Tarea.objects.all()       
+    SECTORES_PROGRESO = [
+        'armado', 'control_1', 'soldado', 'control_2',
+        'pintado', 'galvanizado', 'despachar'
+    ]
+
+    def calcular_progreso_por_sector(sector_actual, estado_actual=None):
+        if estado_actual == 'finalizada':
+            return 100
+        try:
+            indice = SECTORES_PROGRESO.index(sector_actual)
+            return int((indice + 1) / len(SECTORES_PROGRESO) * 100)
+        except ValueError:
+            return 0
 
     ordenes_con_info = []
     for orden in ordenes:
-        total = orden.tareas.count()
-        completadas = orden.tareas.filter(estado='finalizada').count()
-        progreso = int((completadas / total) * 100) if total > 0 else 0
+        tareas = Tarea.objects.filter(orden=orden)
+        total = tareas.count()
+        completadas = tareas.filter(estado='finalizada').count()
 
-        ordenes_con_info.append({
-            'orden': orden,
-            'total': total,
-            'completadas': completadas,
-            'progreso': progreso
-        })
+        if total > 0:
+            progreso = sum([calcular_progreso_por_sector(t.sector, t.estado) for t in tareas]) // total
+        else:
+            progreso = 0
+
+        # ✅ Solo actualiza si es necesario
+        if progreso == 100:
+            if not orden.finalizada:
+                orden.finalizada = True
+                orden.save()
+        else:
+            if orden.finalizada:
+                orden.finalizada = False
+                orden.save()
+            ordenes_con_info.append({
+                'orden': orden,
+                'total': total,
+                'completadas': completadas,
+                'progreso': progreso
+            })
 
     return render(request, 'tareas/lista_ordenes_trabajo.html', {
         'ordenes': ordenes_con_info,
@@ -493,6 +570,7 @@ def detalle_orden_trabajo(request, orden_id):
     orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
     empleado = Empleado.objects.get(usuario=request.user)
     tipo = None
+    
 
     if not puede_ver_avances(empleado):
         return HttpResponseForbidden("No tenés acceso a esta orden.")
@@ -559,6 +637,7 @@ def detalle_orden_trabajo(request, orden_id):
         'puede_asignar': puede_asignar_valor,
         'agentes_externos': agentes_externos,
     })
+
 @login_required
 def borrar_orden_trabajo(request, orden_id):
     empleado = Empleado.objects.get(usuario=request.user)
@@ -574,6 +653,24 @@ def borrar_orden_trabajo(request, orden_id):
 
     return render(request, 'tareas/confirmar_borrado_ot.html', {'orden': orden})
 
+@login_required
+def historial_ordenes_trabajo(request):
+    todas_las_ots = OrdenDeTrabajo.objects.all()
+    
+    ordenes_finalizadas = []
+    for ot in todas_las_ots:
+        tareas = ot.tareas.all()
+        total = tareas.count()
+        completadas = tareas.filter(estado='finalizada').count()
+        
+        if total > 0 and total == completadas:
+            ordenes_finalizadas.append({
+                'orden': ot,
+                'total': total,
+                'completadas': completadas,
+            })
+
+    return render(request, 'tareas/historial_ordenes.html', {'ordenes': ordenes_finalizadas})
 # Crear y eliminar tareas
 @login_required
 def crear_tarea(request, orden_id):
@@ -676,6 +773,126 @@ def procesar_excel_y_crear_tareas(archivo_excel, orden, creador):
             peso_unitario=peso_unit,
             peso_total=peso_total,
         )
+
+def procesar_excel_y_actualizar_tareas(archivo_excel, orden, creador):
+    import pandas as pd
+    from .models import Tarea
+
+    df = pd.read_excel(archivo_excel, sheet_name='GRAL', skiprows=6)
+    df.columns = df.columns.str.strip()
+
+    print("✅ Columnas detectadas:", df.columns.tolist())
+
+    columnas_esperadas = [
+        'POSICIÓN', 'ID. ESTRUCT.', 'PLANO CMMT', 'DENOMINACIÓN', 'CANTIDAD',
+        'PESO UNIT.', 'PESO TOTAL'
+    ]
+
+    for col in columnas_esperadas:
+        if col not in df.columns:
+            raise ValueError(f"❌ Falta la columna requerida: {col}")
+
+    # Función de limpieza numérica
+    def limpiar_numero(valor):
+        if pd.isna(valor):
+            return None
+        try:
+            return int(valor)
+        except:
+            try:
+                return float(valor)
+            except:
+                return None
+
+    actualizadas = 0
+    creadas = 0
+
+    for _, row in df.iterrows():
+        plano = row['PLANO CMMT']
+        denominacion = row['DENOMINACIÓN']
+        estructura = row['ID. ESTRUCT.']
+        posicion = row['POSICIÓN']
+
+        if pd.isna(plano) or plano == "":
+            print("⚠️ Fila ignorada por plano vacío.")
+            continue
+
+        cantidad = limpiar_numero(row['CANTIDAD'])
+        peso_unit = limpiar_numero(row['PESO UNIT.'])
+        peso_total = limpiar_numero(row['PESO TOTAL'])
+
+        # Identificador único para buscar si ya existe
+        titulo = f"{plano} - {denominacion}"
+
+        tarea_existente = Tarea.objects.filter(titulo=titulo, orden=orden).first()
+
+        if tarea_existente:
+            tarea_existente.descripcion = f"Posición: {posicion}, Estructura: {estructura}"
+            tarea_existente.estructura = estructura
+            tarea_existente.plano_codigo = plano
+            tarea_existente.posicion = posicion
+            tarea_existente.denominacion = denominacion
+            tarea_existente.cantidad = cantidad
+            tarea_existente.peso_unitario = peso_unit
+            tarea_existente.peso_total = peso_total
+            tarea_existente.save()
+            actualizadas += 1
+        else:
+            Tarea.objects.create(
+                titulo=titulo,
+                descripcion=f"Posición: {posicion}, Estructura: {estructura}",
+                asignado_a=None,
+                creada_por=creador,
+                orden=orden,
+                estado='pendiente',
+                estructura=estructura,
+                plano_codigo=plano,
+                posicion=posicion,
+                denominacion=denominacion,
+                cantidad=cantidad,
+                peso_unitario=peso_unit,
+                peso_total=peso_total,
+            )
+            creadas += 1
+
+    return f"Tareas actualizadas: {actualizadas}, nuevas creadas: {creadas}"
+
+@login_required
+def importar_excel_actualizacion(request, orden_id):
+    orden = get_object_or_404(OrdenDeTrabajo, id=orden_id)
+    empleado = Empleado.objects.get(usuario=request.user)
+
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        archivo_excel = request.FILES['archivo_excel']
+
+        mensaje = procesar_excel_y_actualizar_tareas(archivo_excel, orden, empleado)
+        messages.success(request, mensaje)
+        return redirect('detalle_orden_trabajo', orden_id=orden.id)
+
+    return render(request, 'tareas/importar_excel_actualizacion.html', {'orden': orden})
+
+# Estados en orden lógico
+SECTORES_PROGRESO = [
+    'armado',
+    'control_1',
+    'soldado',
+    'control_2',
+    'pintado',
+    'galvanizado',
+    'despachar',
+    'finalizado'
+]
+
+def calcular_progreso_por_sector(sector_actual, estado_actual=None):
+    if estado_actual == 'finalizada':
+        return 100, 'Finalizada'
+    try:
+        indice = SECTORES_PROGRESO.index(sector_actual)
+        porcentaje = int((indice + 1) / len(SECTORES_PROGRESO) * 100)
+        sector_legible = sector_actual.replace("_", " ").capitalize()
+        return porcentaje, sector_legible
+    except ValueError:
+        return 0, "Sin sector"
 
 # Cerrar sesion
 def cerrar_sesion(request):

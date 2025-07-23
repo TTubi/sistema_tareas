@@ -4,7 +4,6 @@
       <th>#</th>
       <th>Nombre completo</th>
       <th>Username</th>
-      <th>Email</th>
       <th>Perfil</th>
       <th>Acciones</th>
     </tr>
@@ -15,7 +14,6 @@
       <td>{{ forloop.counter }}</td>
       <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
       <td>{{ usuario.usuario.username }}</td>
-      <td>{{ usuario.usuario.email|default:"—" }}</td>
       <td>{{ usuario.perfil|capfirst }}</td>
       <td>
         <a href="{% url 'editar_personal_taller' usuario.id %}" class="btn btn-warning btn-sm">Editar</a>

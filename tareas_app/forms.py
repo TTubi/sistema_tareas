@@ -57,3 +57,19 @@ class ComentarioForm(forms.ModelForm):
     class Meta:
         model = Comentario
         fields = ['texto', 'imagen']
+
+
+class TareaForm(forms.ModelForm):
+    class Meta:
+        model = Tarea
+        fields = '__all__'  # o solo los campos editables
+        widgets = {
+            'descripcion': forms.TextInput(attrs={'class': 'form-control'}),
+            'plano': forms.TextInput(attrs={'class': 'form-control'}),
+            'posicion': forms.TextInput(attrs={'class': 'form-control'}),
+            'plano': forms.TextInput(attrs={'class': 'form-control'}),
+            'denominacion': forms.TextInput(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
+            'peso unitario': forms.NumberInput(attrs={'class': 'form-control'}),
+            'peso total': forms.NumberInput(attrs={'class': 'form-control'}),
+        }

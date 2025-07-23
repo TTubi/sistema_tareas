@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+<button class="back-button" onclick="history.back()">
+  <svg height="16" width="16" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1024 1024"><path d="M874.690416 495.52477c0 11.2973-9.168824 20.466124-20.466124 20.466124l-604.773963 0 188.083679 188.083679c7.992021 7.992021 7.992021 20.947078 0 28.939099-4.001127 3.990894-9.240455 5.996574-14.46955 5.996574-5.239328 0-10.478655-1.995447-14.479783-5.996574l-223.00912-223.00912c-3.837398-3.837398-5.996574-9.046027-5.996574-14.46955 0-5.433756 2.159176-10.632151 5.996574-14.46955l223.019353-223.029586c7.992021-7.992021 20.957311-7.992021 28.949332 0 7.992021 8.002254 7.992021 20.957311 0 28.949332l-188.073446 188.073446 604.753497 0C865.521592 475.058646 874.690416 484.217237 874.690416 495.52477z"></path></svg>
+  <span>Volver</span>
+</button>
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-body">
             <h3 class="card-title">{{ tarea.titulo }}</h3>
+            {% if perfil_usuario in 'ingenieria administrador' %}
+  <a href="{% url 'editar_tarea' tarea.id %}" class="btn btn-warning mb-3">Editar tarea</a>
+{% endif %}
             <p class="card-text"><strong>Descripción:</strong> {{ tarea.descripcion }}</p>
             <p class="card-text"><strong>Asignado a:</strong>
                 {% if tarea.asignado_a %}
@@ -30,9 +37,17 @@
                 <p class="card-text"><strong>Plano adjunto:</strong></p>
                 <img src="{{ tarea.plano.url }}" alt="Plano" class="img-fluid mb-3">
             {% endif %}
+<h5>Progreso de la tarea:</h5>
+<div class="progress mb-3" style="height: 25px;">
+  <div class="progress-bar {% if porcentaje == 100 %}bg-success{% endif %}" role="progressbar"
+       style="width: {{ porcentaje }}%;" aria-valuenow="{{ porcentaje }}"
+       aria-valuemin="0" aria-valuemax="100">
+    {{ porcentaje }}% - {{ sector_legible }}
+  </div>
+</div>
 
             <!-- Botones adicionales de flujo -->
-             {% if puede_asignar %}
+             {% if puede_asignar and tarea.estado == 'en_progreso' %}
 <form method="post" class="mt-3">
     {% csrf_token %}
     <input type="hidden" name="accion" value="reasignar">
@@ -60,12 +75,23 @@
                 <button name="accion" value="enviar_a_despacho" class="btn btn-primary">📦 Enviar a Despacho</button>
                 </form>
             {% endif %}
-            {% if tarea.estado == 'pendiente' and puede_asignar %}
-              <form method="post" class="mb-2">
-                {% csrf_token %}
-                <button type="submit" name="accion" value="asignar_armador" class="btn btn-warning">Asignar Armador</button>
-              </form>
-            {% endif %}
+{% if puede_asignar and tarea.sector == 'pendiente' %}
+<form method="post" class="mb-3">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="cambiar_sector">
+    <label for="nuevo_sector" class="form-label">Seleccionar sector inicial</label>
+    <select name="nuevo_sector" class="form-select w-auto d-inline" required>
+        <option value="armado">Armado</option>
+        <option value="soldado">Soldado</option>
+        <option value="control_1">Control 1</option>
+        <option value="control_2">Control 2</option>
+        <option value="pintado">Pintado</option>
+        <option value="galvanizado">Galvanizado</option>
+        <option value="despachar">Despacho</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-primary">Enviar al sector</button>
+</form>
+{% endif %}
 
             {% if tarea.estado == 'en_progreso' and tarea.sector == 'armado' and es_jefe_produccion %}
               <form method="post" class="mb-2">
@@ -133,11 +159,43 @@
                 <input type="file" name="imagen" class="form-control mb-2">
                 <button type="submit" class="btn btn-secondary">Guardar comentario</button>
             </form>
+            <h5 class="mt-4">Comentarios anteriores</h5>
+{% for comentario in comentarios %}
+  <div class="border rounded p-2 mb-2">
+    <div class="d-flex justify-content-between">
+      <strong>{{ comentario.autor.nombre }}</strong>
+      <small class="text-muted">{{ comentario.fecha_creacion|date:"d/m/Y H:i" }}</small>
+    </div>
+    <p class="mb-1">{{ comentario.texto }}</p>
+    {% if comentario.imagen %}
+      <img src="{{ comentario.imagen.url }}" alt="Imagen comentario" class="img-thumbnail mt-2" style="max-height: 200px; cursor: pointer;" onclick="showImage(this.src)">
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="text-muted">No hay comentarios aún.</p>
+{% endfor %}
             {% endif %}
 
         </div>
     </div>
 </div>
+<div id="imgModal" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 1050;">
+  <img id="modalImg" src="" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
+</div>
+<script>
+  const modal = document.getElementById("imgModal");
+  const modalImg = document.getElementById("modalImg");
+
+  function showImage(src) {
+    modal.classList.remove("d-none");
+    modalImg.src = src;
+  }
+
+  modal.addEventListener("click", () => {
+    modal.classList.add("d-none");
+    modalImg.src = "";
+  });
+</script>
 {% endblock %}
 
 
