@@ -71,7 +71,7 @@
             </td>
             <td>
 {% if tarea.asignado_a %}
-    {{ tarea.asignado_a.usuario.username }}
+    {{ tarea.asignado_a.nombre_completo }}
 {% elif tarea.agente_externo %}
     {{ tarea.agente_externo.nombre }} <span class="badge bg-secondary">Externo</span>
 {% else %}

@@ -12,8 +12,8 @@
     {% for usuario in usuarios_mensuales %}
     <tr>
       <td>{{ forloop.counter }}</td>
-      <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
-      <td>{{ usuario.usuario.username }}</td>
+      <td>{{ usuario.nombre_completo }}</td>
+      <td>{% if usuario.usuario %}{{ usuario.usuario.username }}{% else %}Sin usuario{% endif %}</td>
       <td>{{ usuario.perfil|capfirst }}</td>
       <td>
         <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-warning btn-sm">Editar</a>
