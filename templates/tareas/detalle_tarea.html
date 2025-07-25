@@ -93,7 +93,7 @@
 </form>
 {% endif %}
 
-            {% if tarea.estado == 'en_progreso' and tarea.sector == 'armado' and es_jefe_produccion %}
+            {% if tarea.estado == 'en_progreso' or tarea.estado == 'rechazado' and tarea.sector == 'armado' and es_jefe_produccion %}
               <form method="post" class="mb-2">
                 {% csrf_token %}
                 <button type="submit" name="accion" value="enviar_a_calidad" class="btn btn-primary">Enviar a Control 1</button>

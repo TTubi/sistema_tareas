@@ -8,7 +8,9 @@
   <span>Volver</span>
 </button>
 <h1 class="mb-4">Órdenes de Trabajo</h1>
+{% if perfil_usuario == 'administrador' or perfil_usuario == 'ingenieria' or perfil_usuario == 'ppc' or perfil_usuario == 'produccion' %}
 <a href="{% url 'historial_ordenes_trabajo' %}" class="btn btn-outline-secondary mb-3">Ver Historial</a>
+{% endif %}
 {% if perfil_usuario == 'administrador' or perfil_usuario == 'ingenieria' %}
 <a href="{% url 'crear_orden_trabajo' %}" class="btn btn-primary mb-3">+ Nueva Orden de Trabajo</a>
 {% endif %}

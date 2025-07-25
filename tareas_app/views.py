@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario, PERFILES, avanzar_tarea, ESTADOS
+from .models import Tarea, Empleado, OrdenDeTrabajo, AgenteExterno, Comentario, PERFILES, avanzar_tarea, ESTADOS, Movimiento
 from django.contrib.auth.models import User
 from .forms import (
     TareaForm,
@@ -349,6 +349,15 @@ def detalle_tarea(request, tarea_id):
                     tarea.agente_externo = agente
                     tarea.asignado_a = None
                     tarea.save()
+                    tarea.operarios.add(operario)
+                    Movimiento.objects.create(
+                    tarea=tarea,
+                    estado_anterior=tarea.estado,
+                    estado_nuevo=tarea.estado,
+                    hecho_por=empleado,
+                    detalles=f"Tarea asignada a: {operario.perfil} {operario.nombre} {operario.apellido}",
+                    tipo='asignacion',
+                    )
             elif tipo == 'empleado':
                 operario_id = request.POST.get('asignado_id')
                 if operario_id and operario_id != 'tercerizado':
@@ -360,6 +369,15 @@ def detalle_tarea(request, tarea_id):
                     tarea.asignado_a = operario
                     tarea.agente_externo = None
                     tarea.save()
+                    tarea.operarios.add(operario)
+                    Movimiento.objects.create(
+                        tarea=tarea,
+                        estado_anterior=tarea.estado,
+                        estado_nuevo=tarea.estado,
+                        hecho_por=empleado,
+                        detalles=f"Tarea asignada a: {operario.perfil} {operario.nombre} {operario.apellido}",
+                        tipo='asignacion',
+                    )
             messages.success(request, "Tarea reasignada correctamente.")
             return redirect('detalle_tarea', tarea.id)
         
@@ -587,6 +605,15 @@ def detalle_orden_trabajo(request, orden_id):
             tarea.agente_externo = agente
             tarea.asignado_a = None
             tarea.save()
+            tarea.operarios.add(operario)
+            Movimiento.objects.create(
+                tarea=tarea,
+                estado_anterior=tarea.estado,
+                estado_nuevo=tarea.estado,
+                hecho_por=empleado,
+                tipo='asignacion',
+                detalles=f"Tarea asignada a: {operario.perfil} {operario.nombre} {operario.apellido}"
+            )
 
     elif tipo == 'empleado':
         operario_id = request.POST.get('asignado_id')
@@ -599,6 +626,15 @@ def detalle_orden_trabajo(request, orden_id):
             tarea.asignado_a = operario
             tarea.agente_externo = None
             tarea.save()
+            tarea.operarios.add(operario)
+            Movimiento.objects.create(
+                tarea=tarea,
+                estado_anterior=tarea.estado,
+                estado_nuevo=tarea.estado,
+                hecho_por=empleado,
+                tipo='asignacion',
+                detalles=f"Tarea asignada a: {operario.perfil} {operario.nombre} {operario.apellido}"
+            )
         return redirect('detalle_orden_trabajo', orden_id=orden.id)
 
     tareas = orden.tareas.all()

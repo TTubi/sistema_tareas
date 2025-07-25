@@ -111,18 +111,23 @@ class Tarea(models.Model):
     peso_unitario = models.FloatField(null=True, blank=True)
     peso_total = models.FloatField(null=True, blank=True)
     agente_externo = models.ForeignKey(AgenteExterno, null=True, blank=True, on_delete=models.SET_NULL)
+    operarios = models.ManyToManyField(Empleado, related_name='tareas_operadas', blank=True)
 
     def save(self, *args, **kwargs):
         # Comprobar si el estado cambió
         if self.pk:
             tarea_anterior = Tarea.objects.get(pk=self.pk)
             if tarea_anterior.estado != self.estado:
-                # Guardar movimiento
-                Movimiento.objects.create(
+                if not self.movimientos.filter(
+                estado_anterior=tarea_anterior.estado,
+                estado_nuevo=self.estado,
+                fecha_hora__date=timezone.now().date()
+                ).exists():
+                    Movimiento.objects.create(
                     tarea=self,
                     estado_anterior=tarea_anterior.estado,
                     estado_nuevo=self.estado
-                )
+                    )
 
                 # Si pasó a finalizada, crear PDF
                 if self.estado == 'finalizada':
@@ -133,70 +138,98 @@ class Tarea(models.Model):
 
     def generar_pdf(self):
         if not self.orden:
-            return  # No generar PDF si no está asociada a una orden
+            return
 
-        # Crear carpeta específica para la OT
         carpeta = os.path.join(settings.MEDIA_ROOT, 'reportes', f"OT_{self.orden.id}")
         os.makedirs(carpeta, exist_ok=True)
 
-    # Nombre del archivo PDF
         nombre_pdf = f"{self.titulo.replace(' ', '_')}.pdf"
         archivo_pdf = os.path.join(carpeta, nombre_pdf)
-
         c = canvas.Canvas(archivo_pdf)
         c.setFont("Helvetica", 12)
 
         y = 800
-        c.drawString(100, y, f"Tarea: {self.titulo}")
-        y -= 20
-        c.drawString(100, y, f"Descripción: {self.descripcion}")
-        y -= 20
-        c.drawString(100, y, f"Asignado a: {self.asignado_a}")
-        y -= 20
-        c.drawString(100, y, f"Fecha creación: {self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
-        y -= 20
-        c.drawString(100, y, f"Fecha finalización: {timezone.now().strftime('%Y-%m-%d %H:%M')}")
-        y -= 40
-
-        c.drawString(100, y, "=== Detalle de fabricación ===")
-        y -= 20
-        c.drawString(100, y, f"Plano: {self.plano_codigo}")
-        y -= 20
-        c.drawString(100, y, f"Posición: {self.posicion}")
-        y -= 20
-        c.drawString(100, y, f"Denominación: {self.denominacion}")
-        y -= 20
-        c.drawString(100, y, f"Cantidad: {self.cantidad}")
-        y -= 20
-        c.drawString(100, y, f"Peso Unitario: {self.peso_unitario} kg")
-        y -= 20
-        c.drawString(100, y, f"Peso Total: {self.peso_total} kg")
-        y -= 20
-
-        if y < 150:
-            c.showPage()
-            c.setFont("Helvetica", 12)
-            y = 800
-
-        c.drawString(100, y, "=== Movimientos ===")
-        y -= 20
-        for mov in self.movimientos.all():
+        def draw_line(text):
+            nonlocal y
+            c.drawString(100, y, text)
+            y -= 20
             if y < 100:
                 c.showPage()
                 c.setFont("Helvetica", 12)
                 y = 800
-            c.drawString(120, y, f"{mov.fecha_hora.strftime('%Y-%m-%d %H:%M')} - {mov.estado_anterior} ➜ {mov.estado_nuevo}")
-            y -= 20
 
-        if self.plano and self.plano.name.lower().endswith(('.png', '.jpg', '.jpeg')):
-            try:
-                plano_path = os.path.join(settings.MEDIA_ROOT, self.plano.name)
-                c.showPage()
-                c.setFont("Helvetica", 12)
-                c.drawString(100, 800, "Plano adjunto:")
-                c.drawImage(ImageReader(plano_path), x=100, y=400, width=400, height=300, preserveAspectRatio=True)
-            except Exception as e:
-                c.drawString(100, 780, f"Error al cargar plano: {e}")
+        draw_line(f"Tarea: {self.titulo}")
+        draw_line(f"Descripción: {self.descripcion}")
+
+    # === Operarios ===
+        if hasattr(self, 'operarios'):
+            operarios = self.operarios.all()
+            if operarios.exists():
+                texto_op = ", ".join([f"{o.nombre} {o.apellido} ({o.perfil})" for o in operarios])
+            else:
+                texto_op = "Sin operarios registrados"
+        else:
+            texto_op = f"{self.asignado_a}"
+        draw_line(f"Operarios: {texto_op}")
+
+        draw_line(f"Fecha creación: {self.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
+        if hasattr(self, 'fecha_finalizacion') and self.fecha_finalizacion:
+            draw_line(f"Fecha finalización: {self.fecha_finalizacion.strftime('%Y-%m-%d %H:%M')}")
+
+        draw_line("")
+        draw_line("=== Detalle de fabricación ===")
+        draw_line(f"Plano: {self.plano_codigo}")
+        draw_line(f"Posición: {self.posicion}")
+        draw_line(f"Estructura: {self.estructura}")
+        draw_line(f"Denominación: {self.denominacion}")
+        draw_line(f"Cantidad: {self.cantidad}")
+        draw_line(f"Peso Unitario: {self.peso_unitario} kg")
+        draw_line(f"Peso Total: {self.peso_total} kg")
+
+        draw_line("")
+        draw_line("=== Movimientos ===")
+
+        for mov in self.movimientos.order_by('fecha_hora'):
+            linea = f"{mov.fecha_hora.strftime('%Y-%m-%d %H:%M')} - "
+
+            if mov.estado_anterior != mov.estado_nuevo:
+                linea += f"{mov.estado_anterior} ➜ {mov.estado_nuevo}"
+            else:
+                linea += f"{mov.estado_nuevo}"
+
+            if hasattr(mov, 'tipo') and mov.tipo == 'asignacion' and mov.detalles:
+                linea += f" - {mov.detalles}"
+
+            if mov.estado_nuevo == 'en_revision' and mov.hecho_por and mov.hecho_por.perfil == 'calidad':
+                linea += f" - Controlado por: {mov.hecho_por.nombre} {mov.hecho_por.apellido} ({mov.hecho_por.perfil})"
+
+            if mov.estado_nuevo == 'finalizada' and mov.estado_anterior == 'lista_para_despachar':
+                if mov.hecho_por:
+                    linea += f" - Despachado por: {mov.hecho_por.nombre} {mov.hecho_por.apellido}"
+                else:
+                    linea += f" - Despachado por: No registrado"
+
+            draw_line(linea)
+
+        draw_line("")
+        draw_line("=== Comentarios ===")
+        for comentario in self.comentarios.order_by('fecha_creacion'):
+            autor = comentario.autor.nombre if comentario.autor else "Anónimo"
+            texto = comentario.texto.replace('\n', ' ')
+            draw_line(f"[{comentario.fecha_creacion.strftime('%Y-%m-%d %H:%M')}] {autor}: {texto[:100]}")
+
+        # 👇 Mostrar imagen si hay
+            if comentario.imagen and comentario.imagen.path:
+                try:
+                    img = ImageReader(comentario.imagen.path)
+                    c.drawImage(img, 120, y - 150, width=200, height=150)
+                    y -= 170
+                    if y < 100:
+                        c.showPage()
+                        c.setFont("Helvetica", 12)
+                        y = 800
+                except:
+                    draw_line("⚠️ Error al cargar imagen.")
 
         c.save()
 
@@ -213,6 +246,7 @@ def avanzar_tarea(tarea, accion, empleado, destino_final=None):
         tarea.estado = 'en_revision'
         tarea.sector = 'control_1'
 
+
     # Etapa 2 → CONTROL 1 aprueba
     elif tarea.estado == 'en_revision' and tarea.sector == 'control_1' and accion == 'aprobado_por_calidad':
         tarea.estado = 'pendiente'
@@ -220,8 +254,12 @@ def avanzar_tarea(tarea, accion, empleado, destino_final=None):
 
     # Etapa 2 → CONTROL 1 rechaza
     elif tarea.estado == 'en_revision' and tarea.sector == 'control_1' and accion == 'rechazado_por_calidad':
-        tarea.estado = 'pendiente'
+        tarea.estado = 'rechazado'
         tarea.sector = 'armado'
+
+    elif tarea.estado == 'rechazado' and tarea.sector == 'armado' and accion == 'enviar_a_calidad':
+        tarea.estado = 'en_revision'
+        tarea.sector = 'control_1'
 
     # Etapa 3 → SOLDADO inicia trabajo
     elif tarea.estado == 'pendiente' and tarea.sector == 'soldado' and accion == 'asignar_soldador':
@@ -251,8 +289,12 @@ def avanzar_tarea(tarea, accion, empleado, destino_final=None):
 
     # Etapa 4 → CONTROL 2 rechaza
     elif tarea.estado == 'en_revision' and tarea.sector == 'control_2' and accion == 'rechazado_por_calidad':
-        tarea.estado = 'pendiente'
+        tarea.estado = 'rechazado'
         tarea.sector = 'soldado'
+
+    elif tarea.estado == 'rechazado' and tarea.sector == 'soldado' and accion == 'enviar_a_calidad':
+        tarea.estado = 'en_revision'
+        tarea.sector = 'control_2'
 
     # Etapa 5 → PINTADO finalizado
     elif tarea.estado == 'lista_para_pintar' and tarea.sector == 'pintado' and accion == 'pintado_finalizado':
@@ -263,6 +305,13 @@ def avanzar_tarea(tarea, accion, empleado, destino_final=None):
     elif tarea.estado == 'lista_para_despachar' and tarea.sector == 'despachar' and accion == 'marcar_finalizada':
         tarea.estado = 'finalizada'
 
+        Movimiento.objects.create(
+            tarea=tarea,
+            estado_anterior='lista_para_despachar',
+            estado_nuevo='finalizada',
+            hecho_por=empleado,
+            detalles="Tarea despachada"
+        )
 
     tarea.save()
 
@@ -282,6 +331,9 @@ class Movimiento(models.Model):
     estado_anterior = models.CharField(max_length=20)
     estado_nuevo = models.CharField(max_length=20)
     fecha_hora = models.DateTimeField(auto_now_add=True)
+    hecho_por = models.ForeignKey(Empleado, null=True, blank=True, on_delete=models.SET_NULL)
+    detalles = models.TextField(blank=True, null=True)
+    tipo = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"{self.tarea.titulo} - {self.estado_anterior} ➜ {self.estado_nuevo} ({self.fecha_hora})"
@@ -295,6 +347,7 @@ class Comentario(models.Model):
     texto = models.TextField()
     imagen = models.ImageField(upload_to="comentarios/", null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         autor_nombre = self.autor.nombre if self.autor else "Anonimo"
