@@ -47,7 +47,8 @@
 </div>
 
             <!-- Botones adicionales de flujo -->
-             {% if puede_asignar and tarea.estado == 'en_progreso' %}
+             {% if tarea.estado == 'en_progreso' or tarea.estado == 'rechazado' %}
+  {% if puede_asignar %}
 <form method="post" class="mt-3">
     {% csrf_token %}
     <input type="hidden" name="accion" value="reasignar">
@@ -68,6 +69,7 @@
     <input type="hidden" id="detalle_tipo_asignacion" name="tipo_asignacion" value="empleado">
     <button type="submit" class="btn btn-sm btn-primary mt-2">Reasignar</button>
 </form>
+{% endif %}
 {% endif %}
              {% if es_calidad and tarea.estado == 'galvanizado' %}
                 <form method="post" class="mt-3">
@@ -92,8 +94,22 @@
     <button type="submit" class="btn btn-sm btn-primary">Enviar al sector</button>
 </form>
 {% endif %}
-
-            {% if tarea.estado == 'en_progreso' or tarea.estado == 'rechazado' and tarea.sector == 'armado' and es_jefe_produccion %}
+{% if mostrar_reasignacion_rechazada %}
+{% if puede_asignar %}
+  <form method="post" class="mb-3">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="cambiar_sector">
+    <label for="nuevo_sector">Enviar tarea a:</label>
+    <select name="nuevo_sector" required class="form-select w-auto d-inline mx-2">
+        <option value="">Elegir sector</option>
+        <option value="armado">Armado</option>
+        <option value="soldado">Soldado</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Enviar</button>
+  </form>
+{% endif %}
+{% endif %}
+            {% if tarea.estado == 'en_progreso' and tarea.sector == 'armado' and es_jefe_produccion %}
               <form method="post" class="mb-2">
                 {% csrf_token %}
                 <button type="submit" name="accion" value="enviar_a_calidad" class="btn btn-primary">Enviar a Control 1</button>
@@ -126,12 +142,12 @@
               <form method="post" class="mt-4">
                 {% csrf_token %}
                 <label for="destino_final" class="form-label">Destino final</label>
-                <select class="form-select mb-2" name="destino_final" required>
-                    <option value="" disabled selected>Elegir destino</option>
-                    <option value="pintado">Pintado</option>
-                    <option value="galvanizado">Galvanizado</option>
-                    <option value="despachar">Despacho</option>
-                </select>
+               <select class="form-select" name="destino_final" id="destinoFinal">
+    <option disabled selected>Elegir destino</option>
+    <option value="galvanizado">Galvanizado</option>
+    <option value="pintado">Pintado</option>
+    <option value="despachar">Despachar</option>
+</select>
                 <button type="submit" name="accion" value="segunda_aprobacion" class="btn btn-success">Aprobar y enviar</button>
                 <button type="submit" name="accion" value="rechazado_por_calidad" class="btn btn-danger">Rechazar</button>
               </form>
@@ -195,6 +211,20 @@
     modal.classList.add("d-none");
     modalImg.src = "";
   });
+</script>
+<script>
+  const aprobarBtn = document.querySelector('button[name="accion"][value="aceptar"]');
+  const rechazarBtn = document.querySelector('button[name="accion"][value="rechazar_por_calidad"]');
+  const destinoFinal = document.getElementById('destinoFinal');
+
+  if (aprobarBtn && rechazarBtn && destinoFinal) {
+    aprobarBtn.addEventListener('click', () => {
+      destinoFinal.setAttribute('required', 'true');
+    });
+    rechazarBtn.addEventListener('click', () => {
+      destinoFinal.removeAttribute('required');
+    });
+  }
 </script>
 {% endblock %}
 

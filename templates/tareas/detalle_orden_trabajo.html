@@ -35,7 +35,10 @@
 
     <button type="submit" class="btn btn-primary">Buscar</button>
 </form>
-
+    <div class="form-check form-switch mb-3">
+  <input class="form-check-input" type="checkbox" id="toggleFinalizadas">
+  <label class="form-check-label" for="toggleFinalizadas">Ver tareas finalizadas</label>
+</div>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -49,7 +52,7 @@
     </thead>
     <tbody>
         {% for tarea in tareas %}
-        <tr>
+        <tr class="{% if tarea.estado == 'finalizada' %}fila-finalizada{% endif %}" style="{% if tarea.estado == 'finalizada' %}display: none;{% endif %}">
             <td>
                 <a href="{% url 'detalle_tarea' tarea.id %}">
                 {{ tarea.titulo }}
@@ -64,7 +67,7 @@
                     {% elif tarea.estado == 'lista_para_despachar' %} bg-primary
                     {% elif tarea.estado == 'galvanizado' %} bg-warning
                     {% elif tarea.estado == 'finalizada' %} bg-success 
-                    {% elif tarea.estado == 'rechazada' %} bg-danger 
+                    {% elif tarea.estado == 'rechazado' %} bg-danger 
                     {% endif %}">
                     {{ tarea.estado|title }}
                 </span>
@@ -143,6 +146,27 @@
       externoSelector.style.display = "none";
     }
   }
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggle = document.getElementById('toggleFinalizadas');
+    const finalizadas = document.querySelectorAll('.fila-finalizada');
+
+    // Restaurar estado guardado
+    const mostrar = localStorage.getItem('mostrarFinalizadas') === 'true';
+    toggle.checked = mostrar;
+    finalizadas.forEach(f => {
+      f.style.display = mostrar ? 'table-row' : 'none';
+    });
+
+    toggle.addEventListener('change', function () {
+      const mostrar = this.checked;
+      localStorage.setItem('mostrarFinalizadas', mostrar);
+      finalizadas.forEach(f => {
+        f.style.display = mostrar ? 'table-row' : 'none';
+      });
+    });
+  });
 </script>
 <!-- Paginación -->
 <nav>

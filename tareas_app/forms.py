@@ -22,10 +22,6 @@ class OrdenDeTrabajoForm(forms.ModelForm):
         model = OrdenDeTrabajo
         fields = ['nombre', 'descripcion', 'archivo_excel']
 
-#class AsignarOperarioForm(forms.ModelForm):
- #   class Meta:
-  #      model = Tarea
-   #     fields = ['asignado_a']
 class AsignarOperarioForm(forms.ModelForm):
     tipo_asignacion = forms.ChoiceField(choices=[('propio', 'Interno'), ('tercerizado', 'Externo')])
     asignado_a = forms.ModelChoiceField(queryset=Empleado.objects.none())
@@ -59,10 +55,14 @@ class ComentarioForm(forms.ModelForm):
         fields = ['texto', 'imagen']
 
 
-class TareaForm(forms.ModelForm):
+class TareaEdicionForm(forms.ModelForm):
     class Meta:
         model = Tarea
-        fields = '__all__'  # o solo los campos editables
+        fields = [
+            'descripcion', 'plano_codigo', 'posicion', 'estructura',
+            'denominacion', 'cantidad', 'peso_unitario', 'peso_total',
+            'estado', 'sector', 'asignado_a', 'agente_externo',
+        ]  
         widgets = {
             'descripcion': forms.TextInput(attrs={'class': 'form-control'}),
             'plano': forms.TextInput(attrs={'class': 'form-control'}),

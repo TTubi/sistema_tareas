@@ -8,6 +8,7 @@ from .forms import (
     AgenteExternoForm,
     AsignarAgenteExternoForm,
     ComentarioForm,
+    TareaEdicionForm,
 )
 from django.views.decorators.http import require_POST
 from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
@@ -381,14 +382,23 @@ def detalle_tarea(request, tarea_id):
             messages.success(request, "Tarea reasignada correctamente.")
             return redirect('detalle_tarea', tarea.id)
         
+        if accion == 'marcar_finalizada' and perfil_usuario == 'despacho':
+            tarea.estado = 'finalizada'
+            tarea.save()
+            messages.success(request, "Tarea finalizada correctamente.")
+            return redirect('detalle_orden_trabajo', tarea.orden.id)
+
         if accion == 'cambiar_sector' and es_jefe_produccion:
             nuevo_sector = request.POST.get('nuevo_sector')
+
 
             if nuevo_sector:
                 tarea.sector = nuevo_sector
 
-            # Actualizar el estado automáticamente según el sector
-                if nuevo_sector in ['armado', 'soldado']:
+                # Reglas automáticas según el nuevo sector
+                if tarea.estado == 'rechazado' and nuevo_sector in ['armado', 'soldado']:
+                    tarea.estado = 'en_progreso'
+                elif nuevo_sector in ['armado', 'soldado']:
                     tarea.estado = 'en_progreso'
                 elif nuevo_sector in ['control_1', 'control_2']:
                     tarea.estado = 'en_revision'
@@ -401,9 +411,9 @@ def detalle_tarea(request, tarea_id):
                 elif nuevo_sector == 'pendiente':
                     tarea.estado = 'pendiente'
 
-            tarea.save()
-            messages.success(request, 'El sector y estado fueron actualizados correctamente.')
-            return redirect('detalle_tarea', tarea.id)
+                tarea.save()
+                messages.success(request, 'El sector y estado fueron actualizados correctamente.')
+                return redirect('detalle_tarea', tarea.id)
 
         # Comentario
         if accion == 'agregar_comentario' and puede_comentar:
@@ -453,6 +463,7 @@ def detalle_tarea(request, tarea_id):
         avanzar_tarea(tarea, accion, empleado, destino_final)
         messages.success(request, "La tarea fue actualizada.")
         return redirect('detalle_tarea', tarea.id)
+    mostrar_reasignacion_rechazada = (puede_asignar and tarea.estado == 'rechazado')
 
     context = {
         'tarea': tarea,
@@ -464,6 +475,7 @@ def detalle_tarea(request, tarea_id):
         'perfil_usuario': empleado.perfil,
         'porcentaje': porcentaje,
         'sector_legible': sector_legible,
+        'mostrar_reasignacion_rechazada': mostrar_reasignacion_rechazada,
     }
 
     if puede_asignar(empleado):
@@ -481,14 +493,15 @@ def editar_tarea(request, tarea_id):
     tarea = get_object_or_404(Tarea, id=tarea_id)
     
     if request.method == "POST":
-        form = TareaForm(request.POST, instance=tarea)
+        form = TareaEdicionForm(request.POST, instance=tarea)
         if form.is_valid():
             form.save()
+            tarea.orden = tarea.orden  # 🔒 Reafirmamos que no cambie la orden
+            tarea.save()
             messages.success(request, "Tarea modificada correctamente.")
             return redirect('detalle_tarea', tarea_id=tarea.id)
     else:
-        form = TareaForm(instance=tarea)
-    del form.fields['orden']
+        form = TareaEdicionForm(instance=tarea)
     es_ingenieria = request.user.empleado.perfil == 'ingenieria'
     if es_ingenieria:
         del form.fields['estado']
