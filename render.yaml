@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: sistema-tareas
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn sistema.wsgi"
+    autoDeploy: true
+    branch: main
+    plan: free
+    envVars:
+      - key: RENDER
+        value: "TRUE"
