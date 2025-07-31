@@ -16,7 +16,7 @@
       <td>{% if usuario.usuario %}{{ usuario.usuario.username }}{% else %}Sin usuario{% endif %}</td>
       <td>{{ usuario.perfil|capfirst }}</td>
       <td>
-        <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-warning btn-sm">Editar</a>
+        <a href="{% url 'editar_personal_taller' usuario.id %}" class="btn btn-warning btn-sm">Editar</a>
         <a href="{% url 'eliminar_personal_taller' usuario.id %}" class="btn btn-danger btn-sm">Eliminar</a>
       </td>
     </tr>
