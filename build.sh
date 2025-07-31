@@ -15,7 +15,6 @@ if not Empleado.objects.filter(usuario=user).exists():
     Empleado.objects.create(
         usuario=user,
         nombre='Administrador',
-        apellido='Principal',
         perfil='administrador'
     )
 " | python manage.py shell
