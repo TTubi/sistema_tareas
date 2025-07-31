@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4 text-center">
      <img src="{% static 'img/logo.png' %}" alt="Logo del sistema" width="150">
-<h2>Hola, {{ empleado.usuario.username }}!</h2>
+<h2>Hola, {{ user.empleado.nombre }}!</h2>
 <div class="container text-center mt-4">
   <div class="row justify-content-center">
     {% for nombre, url_name in accesos %}

@@ -31,19 +31,19 @@
             {% endfor %}
         </select>
         <!-- Campo Username -->
-{% if user.perfil != 'Soldador' and user.perfil != 'Armador' %}
-  <div class="form-group">
+<!--{% if user.perfil != 'Soldador' and user.perfil != 'Armador' %}
+ <div class="form-group">
     <label for="username">Nombre de usuario</label>
     <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
   </div>
 
   <!-- Campo Password -->
-  <div class="form-group">
+  <!--<div class="form-group">
     <label for="password">Contraseña</label>
     <input type="password" class="form-control" id="password" name="password">
     <small class="form-text text-muted">Dejar en blanco si no se desea cambiar.</small>
   </div>
-{% endif %}
+{% endif %}-->
     </div>
     <button type="submit" class="btn btn-success">Guardar cambios</button>
     <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
