@@ -481,7 +481,7 @@ def detalle_tarea(request, tarea_id):
     if puede_asignar(empleado):
         context.update({
             'operarios': Empleado.objects.filter(perfil__in=['armador', 'soldador']),
-            'agentes_externos': AgenteExterno.objects.filter(activo=True),
+            'agentes_externos': AgenteExterno.objects.filter,
             'puede_asignar': True,
         })
 
@@ -618,14 +618,14 @@ def detalle_orden_trabajo(request, orden_id):
             tarea.agente_externo = agente
             tarea.asignado_a = None
             tarea.save()
-            tarea.operarios.add(operario)
+            detalles_movimiento = f"Tarea asignada a agente externo ({agente.empresa})"
             Movimiento.objects.create(
                 tarea=tarea,
                 estado_anterior=tarea.estado,
                 estado_nuevo=tarea.estado,
                 hecho_por=empleado,
                 tipo='asignacion',
-                detalles=f"Tarea asignada a: {operario.perfil} {operario.nombre} {operario.apellido}"
+                detalles=detalles_movimiento
             )
 
     elif tipo == 'empleado':
@@ -670,7 +670,7 @@ def detalle_orden_trabajo(request, orden_id):
     page_obj = paginator.get_page(page_number)
 
     operarios = Empleado.objects.filter(perfil__in=['armador', 'soldador',])
-    agentes_externos = AgenteExterno.objects.filter(activo=True)
+    agentes_externos = AgenteExterno.objects.filter()
 
     es_admin = empleado.perfil == 'administrador'
     es_produccion = empleado.perfil == 'produccion'

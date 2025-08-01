@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
+import cloudinary
+import cloudinary.uploader
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -149,3 +151,10 @@ TEMPLATES = [
     },
 ]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+#Cloudinary
+cloudinary.config(
+  cloud_name = "dcsfoj2ce",
+  api_key = "694312397541493",
+  api_secret = "ah-fy6ch0Z5ZJzvV8DbiBn8tWeQ"
+)

@@ -10,17 +10,8 @@
 <form method="post">
     {% csrf_token %}
     
-    <label for="id_nombre">Nombre:</label>
-    <input type="text" name="nombre" id="id_nombre" value="{{ agente.nombre }}"><br>
-
     <label for="id_empresa">Empresa:</label>
     <input type="text" name="empresa" id="id_empresa" value="{{ agente.empresa }}"><br>
-
-    <label for="id_contacto">Contacto:</label>
-    <input type="text" name="contacto" id="id_contacto" value="{{ agente.contacto }}"><br>
-
-    <label for="id_activo">Activo:</label>
-    <input type="checkbox" name="activo" id="id_activo" {% if agente.activo %}checked{% endif %}><br><br>
 
     <button type="submit">Guardar</button>
 </form>

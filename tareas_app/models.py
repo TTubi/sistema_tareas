@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 from reportlab.lib.utils import ImageReader
+import cloudinary.uploader
 
 # CONSTANTES
 PERFILES = [
@@ -68,10 +69,8 @@ class Empleado(models.Model):
         return self.nombre
     
 class AgenteExterno(models.Model):
-    nombre = models.CharField(max_length=100)
     empresa = models.CharField(max_length=100, blank=True, null=True)
-    contacto = models.CharField(max_length=100, blank=True, null=True)
-    activo = models.BooleanField(default=True)
+
 
     def __str__(self):
         return self.nombre    
@@ -112,6 +111,7 @@ class Tarea(models.Model):
     peso_total = models.FloatField(null=True, blank=True)
     agente_externo = models.ForeignKey(AgenteExterno, null=True, blank=True, on_delete=models.SET_NULL)
     operarios = models.ManyToManyField(Empleado, related_name='tareas_operadas', blank=True)
+    pdf_url = models.URLField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         # Comprobar si el estado cambió
@@ -232,6 +232,16 @@ class Tarea(models.Model):
                     draw_line("⚠️ Error al cargar imagen.")
 
         c.save()
+        try:
+            response = cloudinary.uploader.upload(archivo_pdf, resource_type="raw")
+            url_pdf = response['secure_url']
+            print(f"PDF subido correctamente a: {url_pdf}")
+            self.pdf_url = url_pdf
+            self.save()
+        except Exception as e:
+            print("Error al subir PDF a Cloudinary:", e)
+            
+            
 
 
 

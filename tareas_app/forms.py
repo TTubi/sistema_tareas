@@ -42,11 +42,11 @@ class AsignarOperarioForm(forms.ModelForm):
 class AgenteExternoForm(forms.ModelForm):
     class Meta:
         model = AgenteExterno
-        fields = ['nombre', 'empresa', 'contacto', 'activo']
+        fields = ['empresa']
 
 class AsignarAgenteExternoForm(forms.Form):
     tarea_id = forms.IntegerField(widget=forms.HiddenInput())
-    agente_externo = forms.ModelChoiceField(queryset=AgenteExterno.objects.filter(activo=True))
+    agente_externo = forms.ModelChoiceField(queryset=AgenteExterno.objects.filter())
 
 
 class ComentarioForm(forms.ModelForm):
