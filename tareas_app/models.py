@@ -114,7 +114,7 @@ class Tarea(models.Model):
     pdf_url = models.URLField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Comprobar si el estado cambió
+        
         if self.pk:
             tarea_anterior = Tarea.objects.get(pk=self.pk)
             if tarea_anterior.estado != self.estado:
@@ -129,7 +129,7 @@ class Tarea(models.Model):
                     estado_nuevo=self.estado
                     )
 
-                # Si pasó a finalizada, crear PDF
+                
                 if self.estado == 'finalizada':
                     self.generar_pdf()
 

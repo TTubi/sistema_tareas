@@ -42,6 +42,9 @@ def es_rrhh(empleado):
 def es_admin_o_ingenieria(empleado):
     return hasattr(empleado, 'empleado') and empleado.empleado.perfil in ['ingenieria', 'administrador']
 
+def puede_ver_pdf(empleado):
+    return empleado.perfil in ['ppc', 'ingenieria', 'administrador']
+
 class CustomLoginView(LoginView):
     template_name = 'login.html'  
 
