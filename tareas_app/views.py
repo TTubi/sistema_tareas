@@ -332,6 +332,7 @@ def detalle_tarea(request, tarea_id):
     es_jefe_produccion = empleado.perfil == 'produccion'
     puede_ver = empleado.perfil in ['administrador', 'produccion', 'ppc', 'ingenieria', 'calidad', 'despacho']
     puede_comentar = empleado.perfil in ['ingenieria', 'produccion', 'calidad', 'administrador']
+    perfil_usuario = empleado.perfil
 
     if not puede_ver:
         return HttpResponseForbidden("No tenés permiso para ver esta tarea.")
