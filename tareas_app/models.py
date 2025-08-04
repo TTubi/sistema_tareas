@@ -236,8 +236,7 @@ class Tarea(models.Model):
             response = cloudinary.uploader.upload(archivo_pdf, resource_type="raw")
             url_pdf = response['secure_url']
             print(f"PDF subido correctamente a: {url_pdf}")
-            self.pdf_url = url_pdf
-            self.save()
+            Tarea.objects.filter(id=self.id).update(pdf_url=url_pdf)
         except Exception as e:
             print("Error al subir PDF a Cloudinary:", e)
             
