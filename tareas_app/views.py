@@ -383,10 +383,15 @@ def detalle_tarea(request, tarea_id):
             return redirect('detalle_tarea', tarea.id)
         
         if accion == 'marcar_finalizada' and perfil_usuario == 'despacho':
-            tarea.estado = 'finalizada'
-            tarea.save()
-            messages.success(request, "Tarea finalizada correctamente.")
-            return redirect('detalle_orden_trabajo', tarea.orden.id)
+            try:
+                tarea.estado = 'finalizada'
+                tarea.save()
+                messages.success(request, "Tarea finalizada correctamente.")
+                return redirect('detalle_orden_trabajo', tarea.orden.id)
+            except Exception as e:
+                messages.error(request, f"Error al finalizar tarea: {str(e)}")
+                print("ERROR al finalizar tarea:", e)
+                return redirect('detalle_tarea', tarea.id)
 
         if accion == 'cambiar_sector' and es_jefe_produccion:
             nuevo_sector = request.POST.get('nuevo_sector')
